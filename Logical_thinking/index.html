@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>心理探偵 - MIND READER</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f;
+  --panel: #12121a;
+  --panel2: #1a1a26;
+  --accent: #e8c840;
+  --accent2: #40c8e8;
+  --danger: #e84040;
+  --success: #40e880;
+  --text: #f0f0f0;
+  --text2: #8888aa;
+  --border: rgba(255,255,255,0.08);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans JP', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* SCANLINE EFFECT */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* TITLE SCREEN */
+#title-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: radial-gradient(ellipse at center, #1a1a2e 0%, #0a0a0f 70%);
+}
+.grid-bg {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(232,200,64,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(232,200,64,0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+.title-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(48px, 10vw, 96px);
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  text-shadow: 0 0 40px rgba(232,200,64,0.4);
+  animation: flicker 4s infinite;
+  position: relative;
+  z-index: 1;
+}
+.title-sub {
+  font-size: 14px;
+  color: var(--accent2);
+  letter-spacing: 0.3em;
+  margin-top: 8px;
+  position: relative;
+  z-index: 1;
+}
+.title-char {
+  position: relative;
+  z-index: 1;
+  margin: 40px 0;
+}
+.detective-svg {
+  width: 120px;
+  height: 180px;
+  filter: drop-shadow(0 0 20px rgba(64,200,232,0.3));
+}
+.start-btn {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+  border: 2px solid var(--accent);
+  color: var(--accent);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px;
+  letter-spacing: 0.2em;
+  padding: 14px 48px;
+  cursor: pointer;
+  transition: all 0.2s;
+  animation: pulse-border 2s infinite;
+}
+.start-btn:hover {
+  background: var(--accent);
+  color: var(--bg);
+  box-shadow: 0 0 30px rgba(232,200,64,0.5);
+}
+.title-hint {
+  position: relative;
+  z-index: 1;
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--text2);
+  letter-spacing: 0.1em;
+}
+
+/* GAME SCREEN */
+#game-screen {
+  display: none;
+  min-height: 100vh;
+  padding: 0;
+}
+.game-header {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.game-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+}
+.hud {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+.hud-item {
+  text-align: center;
+}
+.hud-label {
+  font-size: 10px;
+  color: var(--text2);
+  letter-spacing: 0.1em;
+}
+.hud-value {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  color: var(--text);
+  line-height: 1;
+}
+.hud-value.timer-warn { color: var(--danger); animation: flash 0.5s infinite; }
+.hud-value.accent { color: var(--accent); }
+
+.progress-track {
+  height: 3px;
+  background: var(--border);
+}
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.5s;
+}
+
+.game-body {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: calc(100vh - 73px);
+}
+
+/* CHARACTER PANEL */
+.char-panel {
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.case-badge {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  color: var(--accent2);
+  background: rgba(64,200,232,0.1);
+  border: 1px solid rgba(64,200,232,0.3);
+  padding: 4px 12px;
+  margin-bottom: 20px;
+}
+.char-display {
+  width: 140px;
+  height: 200px;
+  position: relative;
+  margin-bottom: 16px;
+}
+.char-display svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 4px 20px rgba(0,0,0,0.5));
+}
+.char-emotion {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 36px;
+  height: 36px;
+  background: var(--panel2);
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  animation: float 2s ease-in-out infinite;
+}
+.char-name-display {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  margin-bottom: 4px;
+}
+.char-meta {
+  font-size: 12px;
+  color: var(--text2);
+  text-align: center;
+  margin-bottom: 20px;
+}
+.clues-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 13px;
+  letter-spacing: 0.2em;
+  color: var(--text2);
+  align-self: flex-start;
+  margin-bottom: 10px;
+}
+.clue-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.clue-tag {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent2);
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.clue-tag span {
+  font-size: 10px;
+  color: var(--accent2);
+  display: block;
+  margin-bottom: 2px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+.clue-tag:hover, .clue-tag.active {
+  background: rgba(64,200,232,0.1);
+  border-color: var(--accent2);
+  color: var(--text);
+}
+
+/* MAIN PANEL */
+.main-panel {
+  padding: 28px 32px;
+  background: var(--bg);
+}
+.scenario-box {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--accent);
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  position: relative;
+}
+.scenario-box::before {
+  content: 'CASE FILE';
+  position: absolute;
+  top: -1px;
+  right: 16px;
+  background: var(--accent);
+  color: var(--bg);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  padding: 2px 10px;
+}
+.scenario-text {
+  font-size: 14px;
+  line-height: 1.9;
+  color: var(--text);
+}
+.question-label {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 13px;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+.question-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+.options-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.option-btn {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 14px 18px;
+  text-align: left;
+  font-size: 14px;
+  font-family: 'Noto Sans JP', sans-serif;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  line-height: 1.5;
+}
+.option-btn .opt-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  color: var(--text2);
+  min-width: 24px;
+  transition: color 0.15s;
+}
+.option-btn:hover {
+  border-color: var(--accent);
+  background: rgba(232,200,64,0.05);
+}
+.option-btn:hover .opt-num { color: var(--accent); }
+.option-btn.selected {
+  border-color: var(--accent);
+  background: rgba(232,200,64,0.1);
+}
+.option-btn.selected .opt-num { color: var(--accent); }
+.option-btn.correct {
+  border-color: var(--success);
+  background: rgba(64,232,128,0.1);
+}
+.option-btn.correct .opt-num { color: var(--success); }
+.option-btn.wrong {
+  border-color: var(--danger);
+  background: rgba(232,64,64,0.1);
+}
+.option-btn.wrong .opt-num { color: var(--danger); }
+.option-btn:disabled { cursor: default; }
+
+.action-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.submit-btn {
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  letter-spacing: 0.15em;
+  padding: 12px 36px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.submit-btn:hover { box-shadow: 0 0 20px rgba(232,200,64,0.4); }
+.submit-btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+
+/* RESULT */
+.result-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+}
+.result-overlay.show { display: flex; }
+.result-box {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--accent);
+  width: 90%;
+  max-width: 560px;
+  padding: 32px;
+  animation: slide-up 0.3s ease;
+}
+.result-verdict {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 36px;
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+.result-verdict.correct { color: var(--success); }
+.result-verdict.wrong { color: var(--danger); }
+.result-verdict.timeout { color: var(--text2); }
+.result-explanation {
+  font-size: 14px;
+  color: var(--text2);
+  line-height: 1.8;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: var(--panel2);
+  border-left: 3px solid var(--accent2);
+}
+.result-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.stat-box {
+  flex: 1;
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  padding: 12px;
+  text-align: center;
+}
+.stat-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  color: var(--accent);
+}
+.stat-label {
+  font-size: 11px;
+  color: var(--text2);
+  letter-spacing: 0.1em;
+}
+.next-btn {
+  width: 100%;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 0.15em;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.next-btn:hover { box-shadow: 0 0 20px rgba(232,200,64,0.4); }
+
+/* END SCREEN */
+#end-screen {
+  display: none;
+  min-height: 100vh;
+  background: radial-gradient(ellipse at center, #1a1a2e 0%, #0a0a0f 70%);
+  align-items: flex-start;
+  justify-content: center;
+  flex-direction: column;
+  position: relative;
+  overflow-y: auto;
+}
+#end-screen.show { display: flex; }
+.end-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(232,200,64,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(232,200,64,0.03) 1px, transparent 1px); background-size: 40px 40px; }
+.end-content { position: relative; z-index: 1; text-align: center; padding: 40px 24px; width: 100%; max-width: 660px; margin: 0 auto; }
+.end-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  letter-spacing: 0.3em;
+  color: var(--accent2);
+  margin-bottom: 8px;
+}
+.end-score {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(72px, 15vw, 120px);
+  color: var(--accent);
+  line-height: 1;
+  text-shadow: 0 0 40px rgba(232,200,64,0.3);
+}
+.end-max { font-size: 18px; color: var(--text2); margin-bottom: 24px; }
+.rank-display {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 0.1em;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.rank-sub { font-size: 13px; color: var(--text2); margin-bottom: 40px; }
+.end-char {
+  width: 100px;
+  height: 150px;
+  margin: 0 auto 32px;
+  filter: drop-shadow(0 0 20px rgba(232,200,64,0.3));
+}
+.replay-btn {
+  background: transparent;
+  border: 2px solid var(--accent);
+  color: var(--accent);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 0.2em;
+  padding: 12px 40px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.replay-btn:hover { background: var(--accent); color: var(--bg); }
+
+@keyframes flicker {
+  0%,95%,100% { opacity: 1; }
+  96% { opacity: 0.8; }
+  97% { opacity: 1; }
+  98% { opacity: 0.7; }
+}
+@keyframes pulse-border {
+  0%,100% { box-shadow: 0 0 0 0 rgba(232,200,64,0); }
+  50% { box-shadow: 0 0 0 8px rgba(232,200,64,0.15); }
+}
+@keyframes float {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes flash {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+@keyframes slide-up {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+.shake { animation: shake 0.4s ease; }
+
+@media (max-width: 700px) {
+  .game-body { grid-template-columns: 1fr; }
+  .char-panel { display: none; }
+  .main-panel { padding: 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- TITLE -->
+<div id="title-screen">
+  <div class="grid-bg"></div>
+  <div class="title-logo">MIND READER</div>
+  <div class="title-sub">心理探偵 — 行動の裏を読め</div>
+  <div class="title-char">
+    <svg class="detective-svg" viewBox="0 0 120 180" xmlns="http://www.w3.org/2000/svg">
+      <!-- Hat -->
+      <rect x="25" y="30" width="70" height="8" rx="2" fill="#e8c840"/>
+      <rect x="35" y="10" width="50" height="22" rx="4" fill="#c8a830"/>
+      <!-- Head -->
+      <ellipse cx="60" cy="58" rx="22" ry="24" fill="#f5d5a0"/>
+      <!-- Eyes -->
+      <ellipse cx="52" cy="54" rx="4" ry="4" fill="white"/>
+      <ellipse cx="68" cy="54" rx="4" ry="4" fill="white"/>
+      <circle cx="53" cy="54" r="2.5" fill="#1a1a2e"/>
+      <circle cx="69" cy="54" r="2.5" fill="#1a1a2e"/>
+      <circle cx="53.8" cy="53.2" r="0.8" fill="white"/>
+      <circle cx="69.8" cy="53.2" r="0.8" fill="white"/>
+      <!-- Nose -->
+      <ellipse cx="60" cy="61" rx="2" ry="1.5" fill="#e0b080"/>
+      <!-- Mouth neutral -->
+      <path d="M53 67 Q60 70 67 67" stroke="#c08060" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <!-- Coat -->
+      <path d="M25 82 L35 82 L40 160 L80 160 L85 82 L95 82 L90 170 L30 170 Z" fill="#2a2a3e"/>
+      <!-- Collar -->
+      <path d="M45 82 L60 100 L75 82" fill="white"/>
+      <path d="M45 82 L52 95 L60 88" fill="#e8e8e8"/>
+      <!-- Tie -->
+      <path d="M57 88 L60 120 L63 88 L60 95 Z" fill="#e8c840"/>
+      <!-- Arms -->
+      <path d="M35 90 L15 120 L20 125 L42 100" fill="#2a2a3e"/>
+      <path d="M85 90 L105 115 L100 122 L78 100" fill="#2a2a3e"/>
+      <!-- Hands -->
+      <ellipse cx="17" cy="123" rx="7" ry="6" fill="#f5d5a0"/>
+      <ellipse cx="102" cy="119" rx="7" ry="6" fill="#f5d5a0"/>
+      <!-- Magnifying glass -->
+      <circle cx="110" cy="112" r="10" stroke="#e8c840" stroke-width="2.5" fill="rgba(64,200,232,0.15)"/>
+      <line x1="116" y1="119" x2="122" y2="127" stroke="#e8c840" stroke-width="3" stroke-linecap="round"/>
+      <!-- Question mark in glass -->
+      <text x="107" y="116" font-family="serif" font-size="11" fill="#e8c840" font-weight="bold">?</text>
+      <!-- Legs -->
+      <rect x="42" y="160" width="14" height="20" rx="2" fill="#1a1a2e"/>
+      <rect x="64" y="160" width="14" height="20" rx="2" fill="#1a1a2e"/>
+      <!-- Shoes -->
+      <ellipse cx="49" cy="180" rx="10" ry="4" fill="#111"/>
+      <ellipse cx="71" cy="180" rx="10" ry="4" fill="#111"/>
+    </svg>
+  </div>
+  <button class="start-btn" onclick="startGame()">GAME START</button>
+  <div class="title-hint">4つのケースに挑め — 制限時間 2分/問</div>
+</div>
+
+<!-- GAME -->
+<div id="game-screen">
+  <div class="game-header">
+    <div class="game-logo">MIND READER</div>
+    <div class="hud">
+      <div class="hud-item">
+        <div class="hud-label">SCORE</div>
+        <div class="hud-value accent" id="hud-score">0</div>
+      </div>
+      <div class="hud-item">
+        <div class="hud-label">TIME</div>
+        <div class="hud-value" id="hud-timer">2:00</div>
+      </div>
+      <div class="hud-item">
+        <div class="hud-label">CASE</div>
+        <div class="hud-value" id="hud-case">1/4</div>
+      </div>
+    </div>
+  </div>
+  <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+  <div class="game-body">
+    <div class="char-panel">
+      <div class="case-badge" id="case-badge">CASE 01</div>
+      <div class="char-display">
+        <svg id="char-svg" viewBox="0 0 120 200" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div class="char-emotion" id="char-emotion">🤔</div>
+      </div>
+      <div class="char-name-display" id="char-name"></div>
+      <div class="char-meta" id="char-meta"></div>
+      <div class="clues-title">EVIDENCE</div>
+      <div class="clue-list" id="clue-list"></div>
+    </div>
+    <div class="main-panel">
+      <div class="scenario-box">
+        <div class="scenario-text" id="scenario-text"></div>
+      </div>
+      <div class="question-label">QUESTION — 核心を読め</div>
+      <div class="question-text" id="question-text"></div>
+      <div class="options-grid" id="options-grid"></div>
+      <div class="action-row">
+        <button class="submit-btn" id="submit-btn" onclick="submitAnswer()">ANALYZE</button>
+        <span style="font-size:12px;color:var(--text2)" id="submit-hint">選択してから判定</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RESULT OVERLAY -->
+<div class="result-overlay" id="result-overlay">
+  <div class="result-box">
+    <div class="result-verdict" id="result-verdict"></div>
+    <div class="result-explanation" id="result-explanation"></div>
+    <div class="result-stats">
+      <div class="stat-box">
+        <div class="stat-num" id="stat-pts"></div>
+        <div class="stat-label">TODAY'S POINTS</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="stat-time"></div>
+        <div class="stat-label">TIME REMAINING</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="stat-total"></div>
+        <div class="stat-label">TOTAL SCORE</div>
+      </div>
+    </div>
+    <button class="next-btn" id="next-btn" onclick="nextCase()">NEXT CASE →</button>
+  </div>
+</div>
+
+<!-- END -->
+<div id="end-screen">
+  <div class="end-grid"></div>
+  <div class="end-content">
+    <div class="end-title">ANALYSIS COMPLETE</div>
+    <svg class="end-char" viewBox="0 0 120 180" xmlns="http://www.w3.org/2000/svg">
+      <rect x="25" y="30" width="70" height="8" rx="2" fill="#e8c840"/>
+      <rect x="35" y="10" width="50" height="22" rx="4" fill="#c8a830"/>
+      <ellipse cx="60" cy="58" rx="22" ry="24" fill="#f5d5a0"/>
+      <ellipse cx="52" cy="54" rx="4" ry="4" fill="white"/>
+      <ellipse cx="68" cy="54" rx="4" ry="4" fill="white"/>
+      <circle cx="53" cy="54" r="2.5" fill="#1a1a2e"/>
+      <circle cx="69" cy="54" r="2.5" fill="#1a1a2e"/>
+      <circle cx="53.8" cy="53.2" r="0.8" fill="white"/>
+      <circle cx="69.8" cy="53.2" r="0.8" fill="white"/>
+      <path d="M53 66 Q60 72 67 66" stroke="#c08060" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <path d="M25 82 L35 82 L40 160 L80 160 L85 82 L95 82 L90 170 L30 170 Z" fill="#2a2a3e"/>
+      <path d="M45 82 L60 100 L75 82" fill="white"/>
+      <path d="M57 88 L60 120 L63 88 L60 95 Z" fill="#e8c840"/>
+      <path d="M35 90 L15 120 L20 125 L42 100" fill="#2a2a3e"/>
+      <path d="M85 90 L105 115 L100 122 L78 100" fill="#2a2a3e"/>
+      <ellipse cx="17" cy="123" rx="7" ry="6" fill="#f5d5a0"/>
+      <ellipse cx="102" cy="119" rx="7" ry="6" fill="#f5d5a0"/>
+      <rect x="42" y="160" width="14" height="20" rx="2" fill="#1a1a2e"/>
+      <rect x="64" y="160" width="14" height="20" rx="2" fill="#1a1a2e"/>
+      <ellipse cx="49" cy="180" rx="10" ry="4" fill="#111"/>
+      <ellipse cx="71" cy="180" rx="10" ry="4" fill="#111"/>
+    </svg>
+    <div class="end-score" id="end-score">0</div>
+    <div class="end-max">/ 400点</div>
+    <div class="rank-display" id="end-rank"></div>
+    <div class="rank-sub" id="end-rank-sub"></div>
+    <div id="end-analysis" style="text-align:left;width:100%;max-width:600px;margin:0 auto 32px;"></div>
+    <button class="replay-btn" onclick="resetGame()">PLAY AGAIN</button>
+  </div>
+</div>
+
+<script>
+const CASES = [
+  {
+    name: "山田 剛",
+    meta: "40歳 · 営業部長",
+    emotion: "😤",
+    charColor: "#3a5a8a",
+    scenario: "山田さんは毎朝8時に出社し、夜11時まで働く。部下への指示は非常に細かく、ミスには厳しい。先週、部下が大きな契約を取ってきたとき「よくやった」の一言だけで終わった。しかし同じ部下が別の案件でミスをしたとき、会議室で1時間かけて問い詰めた。",
+    clues: [
+      { label: "勤務", text: "毎朝8時〜夜11時" },
+      { label: "指示", text: "細かく管理的" },
+      { label: "成功時", text: "「よくやった」一言のみ" },
+      { label: "失敗時", text: "1時間かけて問い詰める" },
+      { label: "部下評価", text: "距離感がある" },
+      { label: "社内評価", text: "結果は出している" }
+    ],
+    question: "山田さんが成功より失敗に長い時間をかける本質的な理由は？",
+    options: [
+      "部下の成長を本当に心配しているから",
+      "自分のコントロールが効かない状況への強い不安があるから",
+      "成功は当然でミスだけが例外と思っているから",
+      "部下を意図的に追い込もうとしているから"
+    ],
+    correct: 1,
+    explanation: "細かい指示・長時間労働・失敗への過剰反応の組み合わせは「コントロール欲求」の構造です。成功は自分の管理が機能した証拠なので短い反応で済む。ミスは自分のコントロールが破られた体験なので、修正・把握・再管理のために長時間かけます。",
+    tags: ["コントロール欲求", "行動の非対称性", "不安の外在化"]
+  },
+  {
+    name: "佐藤 美咲",
+    meta: "28歳 · デザイナー",
+    emotion: "😶",
+    charColor: "#8a3a6a",
+    scenario: "佐藤さんは会議では一言も発言しないが、会議後に上司に個別で意見を伝える。同僚からは「何を考えているかわからない」と言われる。しかしクライアントとの1on1では饒舌で提案も積極的。チームの飲み会には必ず参加するが、グループ会話には入らず1対1で話すことが多い。",
+    clues: [
+      { label: "会議", text: "集団の場では無言" },
+      { label: "個別", text: "1on1では饒舌" },
+      { label: "飲み会", text: "参加するが集団を避ける" },
+      { label: "クライアント", text: "1on1で高評価" },
+      { label: "同僚印象", text: "「わからない人」" },
+      { label: "行動", text: "会議後に個別で意見を伝える" }
+    ],
+    question: "佐藤さんの行動パターンの根本にある心理構造は？",
+    options: [
+      "人間関係全般が苦手な内向的な性格",
+      "複数の人に同時に評価される状況への過剰な意識",
+      "会議の内容に興味がない",
+      "上司にだけ気に入られようとしている"
+    ],
+    correct: 1,
+    explanation: "1on1では饒舌なのに集団では沈黙する非対称性がポイントです。飲み会に参加するが1対1を選ぶ点も同様。これは「人間関係が苦手」ではなく「観衆効果への過敏さ」です。複数の人に同時に評価される状況への不安が強い構造です。",
+    tags: ["観衆効果", "状況の非対称性", "評価不安"]
+  },
+  {
+    name: "田中 誠一",
+    meta: "52歳 · 部長",
+    emotion: "😊",
+    charColor: "#3a8a5a",
+    scenario: "田中さんはいつも笑顔で「大丈夫ですよ」が口癖。部下から相談されると必ず「大丈夫、なんとかなる」と言う。しかし具体的な解決策は出さない。会議では問題が提起されると話題を変える傾向がある。プライベートでは友人に「仕事が大変で眠れない」と漏らしている。",
+    clues: [
+      { label: "口癖", text: "「大丈夫」「なんとかなる」" },
+      { label: "相談対応", text: "解決策を出さない" },
+      { label: "会議", text: "問題提起で話題を変える" },
+      { label: "本音", text: "眠れないと友人に漏らす" },
+      { label: "表情", text: "常に笑顔" },
+      { label: "評価", text: "「話しやすい上司」" }
+    ],
+    question: "田中さんの「大丈夫」という言葉が本当に意味していることは？",
+    options: [
+      "本当に楽観的で問題がないと思っている",
+      "問題と向き合うことへの回避と自分自身への言い聞かせ",
+      "部下を安心させるための意図的なリーダーシップ",
+      "問題解決のスキルが低いだけ"
+    ],
+    correct: 1,
+    explanation: "「眠れない」というプライベートの言葉が重要な手がかりです。問題を認識しているが、向き合うことで自分の不安が増大することを回避している。「大丈夫」は他者への安心付与ではなく、問題の存在を一時的に消す自己防衛の言葉として機能しています。",
+    tags: ["回避防衛", "表と裏の乖離", "言語化の逆用"]
+  },
+  {
+    name: "鈴木 賢司",
+    meta: "35歳 · エンジニア",
+    emotion: "💻",
+    charColor: "#5a3a8a",
+    scenario: "鈴木さんは技術力が高く、一人での作業は完璧。しかしチーム開発になると進捗報告を後回しにし、締め切りギリギリまで共有しない。完成した成果物のクオリティは高いが、チームが困る。「なぜ早く共有しないの？」と聞かれると「まだ完成してないから」と答える。",
+    clues: [
+      { label: "個人作業", text: "完璧なクオリティ" },
+      { label: "チーム", text: "進捗共有が遅い" },
+      { label: "締め切り", text: "ギリギリまで共有しない" },
+      { label: "本人の理由", text: "「完成してないから」" },
+      { label: "最終成果物", text: "クオリティは高い" },
+      { label: "影響", text: "周囲が困る状況が続く" }
+    ],
+    question: "鈴木さんが「完成するまで共有しない」理由の本質は？",
+    options: [
+      "チームワークの重要性を理解していない",
+      "未完成の状態を他者に見せることへの強い抵抗感",
+      "意図的に情報を隠してチームを困らせたい",
+      "単純に報告を忘れている"
+    ],
+    correct: 1,
+    explanation: "「まだ完成してないから」という言葉と、完成後の高いクオリティへのこだわりの組み合わせがポイントです。これは怠慢ではなく「未完成状態の自分を評価されることへの恐怖」です。完璧な状態でのみ他者に見せたいという完璧主義的防衛の構造です。",
+    tags: ["完璧主義防衛", "評価恐怖", "未完成への抵抗"]
+  }
+];
+
+function buildCharSVG(c) {
+  const col = c.charColor;
+  const light = col;
+  return `
+    <ellipse cx="60" cy="50" rx="22" ry="24" fill="#f5d5a0"/>
+    <ellipse cx="52" cy="46" rx="4" ry="4" fill="white"/>
+    <ellipse cx="68" cy="46" rx="4" ry="4" fill="white"/>
+    <circle cx="53" cy="46" r="2.5" fill="#1a1a2e"/>
+    <circle cx="69" cy="46" r="2.5" fill="#1a1a2e"/>
+    <circle cx="53.8" cy="45.2" r="0.8" fill="white"/>
+    <circle cx="69.8" cy="45.2" r="0.8" fill="white"/>
+    <ellipse cx="60" cy="53" rx="2" ry="1.5" fill="#e0b080"/>
+    <path d="M53 59 Q60 63 67 59" stroke="#c08060" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <rect x="20" y="10" width="80" height="12" rx="2" fill="#333"/>
+    <path d="M25 74 L35 74 L40 170 L80 170 L85 74 L95 74 L90 180 L30 180 Z" fill="${col}"/>
+    <path d="M45 74 L60 92 L75 74" fill="white"/>
+    <path d="M57 80 L60 112 L63 80 L60 87 Z" fill="#e8c840"/>
+    <path d="M35 82 L15 112 L20 117 L42 92" fill="${col}"/>
+    <path d="M85 82 L105 107 L100 114 L78 92" fill="${col}"/>
+    <ellipse cx="17" cy="115" rx="7" ry="6" fill="#f5d5a0"/>
+    <ellipse cx="102" cy="111" rx="7" ry="6" fill="#f5d5a0"/>
+    <rect x="42" y="170" width="14" height="20" rx="2" fill="#1a1a2e"/>
+    <rect x="64" y="170" width="14" height="20" rx="2" fill="#1a1a2e"/>
+    <ellipse cx="49" cy="190" rx="10" ry="4" fill="#111"/>
+    <ellipse cx="71" cy="190" rx="10" ry="4" fill="#111"/>
+  `;
+}
+
+let currentCase = 0;
+let selectedOption = -1;
+let totalScore = 0;
+let timerInterval;
+let timeLeft = 120;
+let answered = false;
+let caseResults = [];
+
+function startGame() {
+  document.getElementById('title-screen').style.display = 'none';
+  document.getElementById('game-screen').style.display = 'block';
+  loadCase(0);
+}
+
+function loadCase(idx) {
+  answered = false;
+  selectedOption = -1;
+  const c = CASES[idx];
+
+  document.getElementById('hud-case').textContent = (idx+1) + '/4';
+  document.getElementById('progress-fill').style.width = (idx/4*100) + '%';
+  document.getElementById('case-badge').textContent = 'CASE 0' + (idx+1);
+  document.getElementById('char-svg').innerHTML = buildCharSVG(c);
+  document.getElementById('char-emotion').textContent = c.emotion;
+  document.getElementById('char-name').textContent = c.name;
+  document.getElementById('char-meta').textContent = c.meta;
+  document.getElementById('scenario-text').textContent = c.scenario;
+  document.getElementById('question-text').textContent = c.question;
+  document.getElementById('submit-btn').disabled = true;
+  document.getElementById('submit-hint').textContent = '選択してから判定';
+
+  const cl = document.getElementById('clue-list');
+  cl.innerHTML = '';
+  c.clues.forEach(clue => {
+    const d = document.createElement('div');
+    d.className = 'clue-tag';
+    d.innerHTML = '<span>' + clue.label + '</span>' + clue.text;
+    d.onclick = () => d.classList.toggle('active');
+    cl.appendChild(d);
+  });
+
+  const og = document.getElementById('options-grid');
+  og.innerHTML = '';
+  const labels = ['A', 'B', 'C', 'D'];
+  c.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = '<span class="opt-num">' + labels[i] + '</span>' + opt;
+    btn.onclick = () => selectOption(i);
+    og.appendChild(btn);
+  });
+
+  startTimer();
+}
+
+function selectOption(i) {
+  if (answered) return;
+  selectedOption = i;
+  document.querySelectorAll('.option-btn').forEach((b, idx) => {
+    b.className = 'option-btn' + (idx === i ? ' selected' : '');
+  });
+  document.getElementById('submit-btn').disabled = false;
+  document.getElementById('submit-hint').textContent = '判定する準備OK';
+}
+
+function startTimer() {
+  clearInterval(timerInterval);
+  timeLeft = 120;
+  updateTimer();
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    updateTimer();
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      if (!answered) submitAnswer(true);
+    }
+  }, 1000);
+}
+
+function updateTimer() {
+  const el = document.getElementById('hud-timer');
+  const m = Math.floor(timeLeft/60);
+  const s = timeLeft % 60;
+  el.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+  el.className = 'hud-value' + (timeLeft <= 30 ? ' timer-warn' : '');
+}
+
+function submitAnswer(timeout) {
+  if (answered) return;
+  if (!timeout && selectedOption === -1) return;
+  answered = true;
+  clearInterval(timerInterval);
+
+  const c = CASES[currentCase];
+  const isCorrect = selectedOption === c.correct;
+  const timeBonus = isCorrect ? Math.floor(timeLeft / 120 * 50) : 0;
+  const pts = isCorrect ? (50 + timeBonus) : 0;
+  totalScore += pts;
+
+  document.querySelectorAll('.option-btn').forEach((b, i) => {
+    b.disabled = true;
+    if (i === c.correct) b.className = 'option-btn correct';
+    else if (i === selectedOption) b.className = 'option-btn wrong';
+  });
+
+  document.getElementById('hud-score').textContent = totalScore;
+  document.getElementById('char-emotion').textContent = isCorrect ? '😲' : '😐';
+
+  caseResults.push({ idx: currentCase, correct: isCorrect, timeLeft, timeout: !!timeout });
+
+  const verdict = document.getElementById('result-verdict');
+  if (timeout) { verdict.textContent = 'TIME OUT'; verdict.className = 'result-verdict timeout'; }
+  else if (isCorrect) { verdict.textContent = 'CORRECT !'; verdict.className = 'result-verdict correct'; }
+  else { verdict.textContent = 'INCORRECT'; verdict.className = 'result-verdict wrong'; }
+
+  document.getElementById('result-explanation').textContent = c.explanation;
+  document.getElementById('stat-pts').textContent = '+' + pts;
+  document.getElementById('stat-time').textContent = timeLeft + 's';
+  document.getElementById('stat-total').textContent = totalScore;
+  document.getElementById('next-btn').textContent = currentCase < 3 ? 'NEXT CASE →' : 'SHOW RESULTS →';
+  document.getElementById('result-overlay').className = 'result-overlay show';
+}
+
+function nextCase() {
+  document.getElementById('result-overlay').className = 'result-overlay';
+  currentCase++;
+  if (currentCase >= CASES.length) {
+    showEnd();
+  } else {
+    loadCase(currentCase);
+  }
+}
+
+function showEnd() {
+  document.getElementById('game-screen').style.display = 'none';
+  const end = document.getElementById('end-screen');
+  end.className = 'show';
+  document.getElementById('end-score').textContent = totalScore;
+  document.getElementById('progress-fill').style.width = '100%';
+
+  const correctCount = caseResults.filter(r => r.correct).length;
+  const avgTime = Math.round(caseResults.reduce((s,r) => s + r.timeLeft, 0) / caseResults.length);
+
+  let rank, rankSub;
+  if (totalScore >= 350)      { rank = '🔍 心理分析のエキスパート'; rankSub = '全ケースで構造の核心を見抜きました'; }
+  else if (totalScore >= 250) { rank = '🕵 優秀な観察者';           rankSub = 'ほとんどのケースで正解に到達しました'; }
+  else if (totalScore >= 150) { rank = '📋 見習い探偵';             rankSub = '基本的な読みはできています'; }
+  else                        { rank = '🔰 訓練が必要';             rankSub = '表面の行動だけでなく構造を見る練習を'; }
+
+  document.getElementById('end-rank').textContent = rank;
+  document.getElementById('end-rank-sub').textContent = rankSub;
+
+  // --- ケース別振り返り ---
+  const caseRows = caseResults.map(r => {
+    const c = CASES[r.idx];
+    const icon = r.correct ? '✓' : (r.timeout ? '⏱' : '✕');
+    const iconColor = r.correct ? 'var(--success)' : (r.timeout ? 'var(--text2)' : 'var(--danger)');
+    const tagHtml = c.tags.map(t => `<span style="font-size:10px;background:rgba(64,200,232,0.12);border:1px solid rgba(64,200,232,0.3);color:var(--accent2);padding:2px 8px;margin-right:4px;">${t}</span>`).join('');
+    return `
+      <div style="background:var(--panel2);border:1px solid var(--border);padding:14px 16px;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:${iconColor};min-width:20px;">${icon}</span>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--text);">${c.name} <span style="font-size:12px;color:var(--text2);font-weight:400;">${c.meta}</span></div>
+            <div style="margin-top:4px;">${tagHtml}</div>
+          </div>
+          <div style="margin-left:auto;text-align:right;">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent);">${r.correct ? '+' + (50 + Math.floor(r.timeLeft/120*50)) : '+0'}</div>
+            <div style="font-size:10px;color:var(--text2);">残り${r.timeLeft}s</div>
+          </div>
+        </div>
+        ${!r.correct ? `<div style="font-size:12px;color:var(--text2);border-left:2px solid var(--danger);padding-left:10px;line-height:1.6;">${c.explanation}</div>` : ''}
+      </div>`;
+  }).join('');
+
+  // --- 強み・弱み分析 ---
+  const correctTags = caseResults.filter(r => r.correct).flatMap(r => CASES[r.idx].tags);
+  const wrongTags   = caseResults.filter(r => !r.correct).flatMap(r => CASES[r.idx].tags);
+
+  const fastCorrect = caseResults.filter(r => r.correct && r.timeLeft >= 90);
+  const slowCorrect = caseResults.filter(r => r.correct && r.timeLeft < 60);
+  const timeouts    = caseResults.filter(r => r.timeout);
+
+  let strengthLines = [];
+  let weaknessLines = [];
+
+  if (correctCount === 4) {
+    strengthLines.push('全ケース正解。行動パターンから心理構造への変換が安定しています。');
+  } else if (correctCount >= 3) {
+    strengthLines.push('高い正答率。複数の証拠を統合して本質を見抜く力があります。');
+  } else if (correctCount >= 2) {
+    strengthLines.push('半数以上を正解。表面的な行動の裏にある構造を意識できています。');
+  } else {
+    weaknessLines.push('正答率が低め。行動の「なぜ」よりも「何をしたか」で判断している可能性があります。');
+  }
+
+  if (correctTags.includes('行動の非対称性') || correctTags.includes('状況の非対称性')) {
+    strengthLines.push('「場面によって行動が変わる」非対称パターンの読み取りが得意です。');
+  }
+  if (correctTags.includes('回避防衛') || correctTags.includes('表と裏の乖離')) {
+    strengthLines.push('表向きの言動と内面の乖離を検出する能力が高いです。');
+  }
+  if (fastCorrect.length >= 2) {
+    strengthLines.push('判断スピードが速く、直感的に核心を掴む力があります。');
+  }
+
+  if (wrongTags.includes('コントロール欲求') || wrongTags.includes('不安の外在化')) {
+    weaknessLines.push('「不安からくる支配的行動」のパターンは見落としがちです。悪意と不安は区別して読む練習を。');
+  }
+  if (wrongTags.includes('完璧主義防衛') || wrongTags.includes('評価恐怖')) {
+    weaknessLines.push('完璧主義的な防衛行動は「怠慢」や「非協力」と混同されやすいです。行動コストに注目してみてください。');
+  }
+  if (wrongTags.includes('観衆効果') || wrongTags.includes('評価不安')) {
+    weaknessLines.push('「集団vs個別」の行動差は評価不安のサインです。場面の切り替わりに注目する練習が有効です。');
+  }
+  if (timeouts.length >= 2) {
+    weaknessLines.push('時間切れが多め。情報を集めすぎる傾向があるかもしれません。仮説を早めに立てて証拠で絞る練習を。');
+  }
+  if (slowCorrect.length >= 2 && timeouts.length === 0) {
+    weaknessLines.push('正解できているが時間がかかっています。証拠の優先順位付けを意識するとさらに速くなります。');
+  }
+
+  if (strengthLines.length === 0) strengthLines.push('まだデータ不足ですが、ここから伸びしろがあります。');
+  if (weaknessLines.length === 0) weaknessLines.push('現時点での明確な弱点は見当たりません。より難しいケースで試してみてください。');
+
+  const analysisHtml = `
+    <div style="margin-top:28px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.2em;color:var(--text2);margin-bottom:12px;">CASE REVIEW</div>
+      ${caseRows}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px;">
+      <div style="background:rgba(64,232,128,0.06);border:1px solid rgba(64,232,128,0.2);padding:16px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:.2em;color:var(--success);margin-bottom:10px;">STRENGTHS</div>
+        ${strengthLines.map(l => `<div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:6px;padding-left:10px;border-left:2px solid var(--success);">${l}</div>`).join('')}
+      </div>
+      <div style="background:rgba(232,64,64,0.06);border:1px solid rgba(232,64,64,0.2);padding:16px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:.2em;color:var(--danger);margin-bottom:10px;">AREAS TO TRAIN</div>
+        ${weaknessLines.map(l => `<div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:6px;padding-left:10px;border-left:2px solid var(--danger);">${l}</div>`).join('')}
+      </div>
+    </div>
+    <div style="margin-top:16px;background:var(--panel2);border:1px solid var(--border);padding:14px 16px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:.2em;color:var(--text2);margin-bottom:8px;">STATS</div>
+      <div style="display:flex;gap:24px;font-size:13px;color:var(--text2);">
+        <span>正解率 <strong style="color:var(--text)">${correctCount}/4</strong></span>
+        <span>平均残り時間 <strong style="color:var(--text)">${avgTime}s</strong></span>
+        <span>合計スコア <strong style="color:var(--accent)">${totalScore}pt</strong></span>
+      </div>
+    </div>`;
+
+  document.getElementById('end-analysis').innerHTML = analysisHtml;
+}
+
+function resetGame() {
+  currentCase = 0;
+  selectedOption = -1;
+  totalScore = 0;
+  answered = false;
+  caseResults = [];
+  document.getElementById('end-screen').className = '';
+  document.getElementById('title-screen').style.display = 'flex';
+}
+</script>
+</body>
+</html>
