@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>構造分解 - STRUCTURE BREAKER</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0f0a;
+  --panel: #101810;
+  --panel2: #182018;
+  --accent: #40e880;
+  --accent2: #e8c840;
+  --danger: #e84040;
+  --success: #40c8e8;
+  --text: #f0f0f0;
+  --text2: #88aa88;
+  --border: rgba(255,255,255,0.08);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Noto Sans JP', sans-serif; min-height: 100vh; overflow-x: hidden; }
+body.font-sm .case-text, body.font-sm .option-btn { font-size: 12px; }
+body.font-sm .question-text { font-size: 14px; }
+body.font-lg .case-text, body.font-lg .option-btn { font-size: 17px; }
+body.font-lg .question-text { font-size: 19px; }
+body.font-lg .factor-tag { font-size: 14px; }
+.font-ctrl { display: flex; gap: 4px; align-items: center; }
+.font-btn { background: transparent; border: 1px solid var(--border); color: var(--text2); font-family: 'Noto Sans JP', sans-serif; font-size: 13px; padding: 4px 8px; cursor: pointer; transition: all 0.15s; }
+.font-btn:hover { border-color: var(--accent); color: var(--accent); }
+.font-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(64,232,128,0.1); }
+.share-btn { background: transparent; border: 2px solid var(--accent); color: var(--accent); font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 0.15em; padding: 12px 28px; cursor: pointer; transition: all 0.2s; margin-bottom: 12px; }
+.share-btn:hover { background: var(--accent); color: var(--bg); }
+body::after { content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px); pointer-events: none; z-index: 9999; }
+
+/* TITLE */
+#title-screen { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; background: radial-gradient(ellipse at center, #0a1a0a 0%, #0a0f0a 70%); }
+.grid-bg { position: absolute; inset: 0; background-image: linear-gradient(rgba(64,232,128,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(64,232,128,0.04) 1px, transparent 1px); background-size: 40px 40px; }
+.title-logo { font-family: 'Bebas Neue', sans-serif; font-size: clamp(40px, 9vw, 88px); color: var(--accent); letter-spacing: 0.1em; text-shadow: 0 0 40px rgba(64,232,128,0.4); animation: flicker 4s infinite; position: relative; z-index: 1; }
+.title-sub { font-size: 13px; color: var(--accent2); letter-spacing: 0.3em; margin-top: 8px; position: relative; z-index: 1; }
+.title-icon { position: relative; z-index: 1; margin: 36px 0; }
+.start-btn { position: relative; z-index: 1; background: transparent; border: 2px solid var(--accent); color: var(--accent); font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 0.2em; padding: 14px 48px; cursor: pointer; transition: all 0.2s; animation: pulse-border 2s infinite; }
+.start-btn:hover { background: var(--accent); color: var(--bg); box-shadow: 0 0 30px rgba(64,232,128,0.5); }
+.title-hint { position: relative; z-index: 1; margin-top: 16px; font-size: 12px; color: var(--text2); letter-spacing: 0.1em; }
+
+/* GAME HEADER */
+#game-screen { display: none; min-height: 100vh; }
+.game-header { background: var(--panel); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+.game-logo { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--accent); letter-spacing: 0.1em; }
+.hud { display: flex; gap: 24px; align-items: center; }
+.hud-item { text-align: center; }
+.hud-label { font-size: 10px; color: var(--text2); letter-spacing: 0.1em; }
+.hud-value { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--text); line-height: 1; }
+.hud-value.accent { color: var(--accent); }
+.hud-value.timer-warn { color: var(--danger); animation: flash 0.5s infinite; }
+.progress-track { height: 3px; background: var(--border); }
+.progress-fill { height: 100%; background: var(--accent); transition: width 0.5s; }
+
+/* GAME BODY */
+.game-body { display: grid; grid-template-columns: 260px 1fr; min-height: calc(100vh - 73px); }
+
+/* LEFT PANEL */
+.left-panel { background: var(--panel); border-right: 1px solid var(--border); padding: 24px 20px; display: flex; flex-direction: column; align-items: center; }
+.case-badge { font-family: 'Bebas Neue', sans-serif; font-size: 12px; letter-spacing: 0.2em; color: var(--accent2); background: rgba(232,200,64,0.1); border: 1px solid rgba(232,200,64,0.3); padding: 4px 12px; margin-bottom: 20px; }
+.case-icon-wrap { width: 130px; height: 130px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; position: relative; }
+.case-icon-wrap svg { width: 100%; height: 100%; filter: drop-shadow(0 4px 20px rgba(0,0,0,0.5)); }
+.status-badge { position: absolute; top: -6px; right: -6px; width: 34px; height: 34px; background: var(--panel2); border: 2px solid var(--accent2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; animation: float 2s ease-in-out infinite; }
+.case-title-display { font-size: 14px; font-weight: 700; color: var(--text); text-align: center; margin-bottom: 4px; }
+.case-type { font-size: 11px; color: var(--accent); text-align: center; letter-spacing: 0.1em; margin-bottom: 20px; font-family: 'Bebas Neue', sans-serif; }
+.factors-title { font-family: 'Bebas Neue', sans-serif; font-size: 12px; letter-spacing: 0.2em; color: var(--text2); align-self: flex-start; margin-bottom: 10px; }
+.factor-list { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.factor-tag { background: var(--panel2); border: 1px solid var(--border); border-left: 3px solid var(--accent); padding: 8px 10px; font-size: 12px; color: var(--text2); cursor: pointer; transition: all 0.15s; }
+.factor-tag span { font-size: 10px; color: var(--accent); display: block; margin-bottom: 2px; font-weight: 700; letter-spacing: 0.05em; }
+.factor-tag:hover, .factor-tag.active { background: rgba(64,232,128,0.08); border-color: var(--accent); color: var(--text); }
+
+/* MAIN PANEL */
+.main-panel { padding: 28px 32px; background: var(--bg); }
+.case-box { background: var(--panel); border: 1px solid var(--border); border-top: 3px solid var(--accent2); padding: 20px 24px; margin-bottom: 24px; position: relative; }
+.case-box::before { content: 'CASE FILE'; position: absolute; top: -1px; right: 16px; background: var(--accent2); color: var(--bg); font-family: 'Bebas Neue', sans-serif; font-size: 11px; letter-spacing: 0.15em; padding: 2px 10px; }
+.case-text { font-size: 14px; line-height: 1.9; color: var(--text); }
+.question-label { font-family: 'Bebas Neue', sans-serif; font-size: 13px; letter-spacing: 0.2em; color: var(--accent); margin-bottom: 12px; }
+.question-text { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 20px; line-height: 1.5; }
+.options-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+.option-btn { background: var(--panel); border: 1px solid var(--border); color: var(--text); padding: 14px 18px; text-align: left; font-size: 14px; font-family: 'Noto Sans JP', sans-serif; cursor: pointer; transition: all 0.15s; display: flex; align-items: flex-start; gap: 12px; line-height: 1.5; }
+.option-btn .opt-num { font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: var(--text2); min-width: 24px; transition: color 0.15s; flex-shrink: 0; }
+.option-btn:hover { border-color: var(--accent); background: rgba(64,232,128,0.05); }
+.option-btn:hover .opt-num { color: var(--accent); }
+.option-btn.selected { border-color: var(--accent); background: rgba(64,232,128,0.1); }
+.option-btn.selected .opt-num { color: var(--accent); }
+.option-btn.correct { border-color: var(--success); background: rgba(64,200,232,0.1); }
+.option-btn.correct .opt-num { color: var(--success); }
+.option-btn.wrong { border-color: var(--danger); background: rgba(232,64,64,0.1); }
+.option-btn.wrong .opt-num { color: var(--danger); }
+.option-btn:disabled { cursor: default; }
+.action-row { display: flex; gap: 12px; align-items: center; }
+.submit-btn { background: var(--accent); color: var(--bg); border: none; font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 0.15em; padding: 12px 36px; cursor: pointer; transition: all 0.15s; }
+.submit-btn:hover { box-shadow: 0 0 20px rgba(64,232,128,0.4); }
+.submit-btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+
+/* RESULT OVERLAY */
+.result-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; align-items: center; justify-content: center; }
+.result-overlay.show { display: flex; }
+.result-box { background: var(--panel); border: 1px solid var(--border); border-top: 4px solid var(--accent); width: 90%; max-width: 580px; padding: 32px; animation: slide-up 0.3s ease; max-height: 90vh; overflow-y: auto; }
+.result-verdict { font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 0.1em; margin-bottom: 8px; }
+.result-verdict.correct { color: var(--success); }
+.result-verdict.wrong { color: var(--danger); }
+.result-verdict.timeout { color: var(--text2); }
+.result-explanation { font-size: 14px; color: var(--text2); line-height: 1.8; margin-bottom: 16px; padding: 16px; background: var(--panel2); border-left: 3px solid var(--accent); }
+.structure-map { background: var(--panel2); border: 1px solid var(--border); padding: 14px 16px; margin-bottom: 20px; }
+.structure-map-title { font-family: 'Bebas Neue', sans-serif; font-size: 11px; letter-spacing: 0.2em; color: var(--accent2); margin-bottom: 10px; }
+.structure-chain { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 12px; }
+.s-node { background: rgba(64,232,128,0.1); border: 1px solid rgba(64,232,128,0.3); color: var(--accent); padding: 4px 10px; }
+.s-arrow { color: var(--text2); font-size: 14px; }
+.s-node.root { background: rgba(232,200,64,0.1); border-color: rgba(232,200,64,0.3); color: var(--accent2); }
+.s-node.result { background: rgba(232,64,64,0.1); border-color: rgba(232,64,64,0.3); color: var(--danger); }
+.result-stats { display: flex; gap: 16px; margin-bottom: 24px; }
+.stat-box { flex: 1; background: var(--panel2); border: 1px solid var(--border); padding: 12px; text-align: center; }
+.stat-num { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--accent); }
+.stat-label { font-size: 11px; color: var(--text2); letter-spacing: 0.1em; }
+.next-btn { width: 100%; background: var(--accent); color: var(--bg); border: none; font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 0.15em; padding: 14px; cursor: pointer; transition: all 0.15s; }
+.next-btn:hover { box-shadow: 0 0 20px rgba(64,232,128,0.4); }
+
+/* END SCREEN */
+#end-screen { display: none; min-height: 100vh; background: radial-gradient(ellipse at center, #0a1a0a 0%, #0a0f0a 70%); align-items: flex-start; justify-content: center; flex-direction: column; position: relative; overflow-y: auto; }
+#end-screen.show { display: flex; }
+.end-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(64,232,128,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(64,232,128,0.03) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; }
+.end-content { position: relative; z-index: 1; text-align: center; padding: 40px 24px; width: 100%; max-width: 680px; margin: 0 auto; }
+.end-title { font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 0.3em; color: var(--accent2); margin-bottom: 8px; }
+.end-score { font-family: 'Bebas Neue', sans-serif; font-size: clamp(72px, 15vw, 120px); color: var(--accent); line-height: 1; text-shadow: 0 0 40px rgba(64,232,128,0.3); }
+.end-max { font-size: 18px; color: var(--text2); margin-bottom: 16px; }
+.rank-display { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 0.1em; color: var(--text); margin-bottom: 6px; }
+.rank-sub { font-size: 13px; color: var(--text2); margin-bottom: 32px; }
+.replay-btn { background: transparent; border: 2px solid var(--accent); color: var(--accent); font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 0.2em; padding: 12px 40px; cursor: pointer; transition: all 0.2s; }
+.replay-btn:hover { background: var(--accent); color: var(--bg); }
+
+@keyframes flicker { 0%,95%,100%{opacity:1}96%{opacity:0.8}97%{opacity:1}98%{opacity:0.7} }
+@keyframes pulse-border { 0%,100%{box-shadow:0 0 0 0 rgba(64,232,128,0)}50%{box-shadow:0 0 0 8px rgba(64,232,128,0.15)} }
+@keyframes float { 0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)} }
+@keyframes flash { 0%,100%{opacity:1}50%{opacity:0.4} }
+@keyframes slide-up { from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1} }
+@media(max-width:700px){.game-body{grid-template-columns:1fr}.left-panel{display:none}.main-panel{padding:16px}}
+</style>
+</head>
+<body>
+
+<!-- TITLE -->
+<div id="title-screen">
+  <div class="grid-bg"></div>
+  <div class="title-logo">STRUCTURE BREAKER</div>
+  <div class="title-sub">構造分解 — 崩壊と成功の本質を見抜け</div>
+  <div class="title-icon">
+    <svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 0 20px rgba(64,232,128,0.4))">
+      <rect x="10" y="10" width="30" height="20" rx="3" fill="none" stroke="#40e880" stroke-width="2"/>
+      <text x="25" y="24" text-anchor="middle" font-family="Bebas Neue" font-size="10" fill="#40e880">ROOT</text>
+      <rect x="80" y="10" width="30" height="20" rx="3" fill="none" stroke="#e8c840" stroke-width="2"/>
+      <text x="95" y="24" text-anchor="middle" font-family="Bebas Neue" font-size="10" fill="#e8c840">CAUSE</text>
+      <rect x="10" y="50" width="30" height="20" rx="3" fill="none" stroke="#40e880" stroke-width="1.5"/>
+      <text x="25" y="64" text-anchor="middle" font-family="Bebas Neue" font-size="9" fill="#40e880">FACTOR</text>
+      <rect x="45" y="50" width="30" height="20" rx="3" fill="none" stroke="#40e880" stroke-width="1.5"/>
+      <text x="60" y="64" text-anchor="middle" font-family="Bebas Neue" font-size="9" fill="#40e880">SYSTEM</text>
+      <rect x="80" y="50" width="30" height="20" rx="3" fill="none" stroke="#e8c840" stroke-width="1.5"/>
+      <text x="95" y="64" text-anchor="middle" font-family="Bebas Neue" font-size="9" fill="#e8c840">LOOP</text>
+      <rect x="27" y="90" width="66" height="20" rx="3" fill="none" stroke="#e84040" stroke-width="2"/>
+      <text x="60" y="104" text-anchor="middle" font-family="Bebas Neue" font-size="10" fill="#e84040">COLLAPSE</text>
+      <line x1="25" y1="30" x2="25" y2="50" stroke="#40e880" stroke-width="1" stroke-dasharray="3,2"/>
+      <line x1="95" y1="30" x2="95" y2="50" stroke="#e8c840" stroke-width="1" stroke-dasharray="3,2"/>
+      <line x1="25" y1="70" x2="45" y2="90" stroke="#888" stroke-width="1" stroke-dasharray="3,2"/>
+      <line x1="60" y1="70" x2="60" y2="90" stroke="#888" stroke-width="1" stroke-dasharray="3,2"/>
+      <line x1="95" y1="70" x2="75" y2="90" stroke="#e8c840" stroke-width="1" stroke-dasharray="3,2"/>
+    </svg>
+  </div>
+  <button class="start-btn" onclick="startGame()">GAME START</button>
+  <div class="title-hint">5つのケースに挑め — 制限時間 2分/問</div>
+</div>
+
+<!-- GAME -->
+<div id="game-screen">
+  <div class="game-header">
+    <div class="game-logo">STRUCTURE BREAKER</div>
+    <div class="hud">
+      <div class="font-ctrl">
+        <button class="font-btn" onclick="setFont('sm')">小</button>
+        <button class="font-btn active" onclick="setFont('md')">中</button>
+        <button class="font-btn" onclick="setFont('lg')">大</button>
+      </div>
+      <div class="hud-item"><div class="hud-label">SCORE</div><div class="hud-value accent" id="hud-score">0</div></div>
+      <div class="hud-item"><div class="hud-label">TIME</div><div class="hud-value" id="hud-timer">2:00</div></div>
+      <div class="hud-item"><div class="hud-label">CASE</div><div class="hud-value" id="hud-case">1/5</div></div>
+    </div>
+  </div>
+  <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+  <div class="game-body">
+    <div class="left-panel">
+      <div class="case-badge" id="case-badge">CASE 01</div>
+      <div class="case-icon-wrap">
+        <svg id="case-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div class="status-badge" id="status-badge">📊</div>
+      </div>
+      <div class="case-title-display" id="case-title-display"></div>
+      <div class="case-type" id="case-type-display"></div>
+      <div class="factors-title">KEY FACTORS</div>
+      <div class="factor-list" id="factor-list"></div>
+    </div>
+    <div class="main-panel">
+      <div class="case-box"><div class="case-text" id="case-text"></div></div>
+      <div class="question-label">QUESTION — 崩壊/成功の本質的原因は？</div>
+      <div class="question-text" id="question-text"></div>
+      <div class="options-grid" id="options-grid"></div>
+      <div class="action-row">
+        <button class="submit-btn" id="submit-btn" onclick="submitAnswer()">ANALYZE</button>
+        <span style="font-size:12px;color:var(--text2)" id="submit-hint">選択してから判定</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RESULT OVERLAY -->
+<div class="result-overlay" id="result-overlay">
+  <div class="result-box">
+    <div class="result-verdict" id="result-verdict"></div>
+    <div class="result-explanation" id="result-explanation"></div>
+    <div class="structure-map" id="structure-map"></div>
+    <div class="result-stats">
+      <div class="stat-box"><div class="stat-num" id="stat-pts"></div><div class="stat-label">POINTS</div></div>
+      <div class="stat-box"><div class="stat-num" id="stat-time"></div><div class="stat-label">TIME LEFT</div></div>
+      <div class="stat-box"><div class="stat-num" id="stat-total"></div><div class="stat-label">TOTAL</div></div>
+    </div>
+    <button class="next-btn" id="next-btn" onclick="nextCase()">NEXT CASE →</button>
+  </div>
+</div>
+
+<!-- END -->
+<div id="end-screen">
+  <div class="end-grid"></div>
+  <div class="end-content">
+    <div class="end-title">ANALYSIS COMPLETE</div>
+    <div class="end-score" id="end-score">0</div>
+    <div class="end-max">/ 500点</div>
+    <div class="rank-display" id="end-rank"></div>
+    <div class="rank-sub" id="end-rank-sub"></div>
+    <div id="end-analysis" style="text-align:left;width:100%;margin:0 auto 24px;"></div>
+    <button class="share-btn" id="share-btn" onclick="shareResult()">SHARE RESULT</button>
+    <br>
+    <button class="replay-btn" onclick="resetGame()">PLAY AGAIN</button>
+  </div>
+</div>
+
+<script>
+const CASES = [
+  {
+    title: "コダック倒産",
+    type: "CORPORATE COLLAPSE",
+    emoji: "📷",
+    color: "#e8c840",
+    scenario: "コダックは20世紀を代表するフィルムカメラ企業として世界を席巻した。1975年には自社エンジニアがデジタルカメラを世界で初めて発明している。しかし2012年に経営破綻。皮肉なことに、デジタル化の波に飲み込まれた形での倒産だった。技術力も資金力もブランド力も持っていたにもかかわらず。",
+    factors: [
+      { label: "技術", text: "デジタルカメラを自社発明" },
+      { label: "資金", text: "当時世界有数の大企業" },
+      { label: "判断", text: "デジタル化の流れを認識" },
+      { label: "行動", text: "フィルム事業を守り続けた" },
+      { label: "結果", text: "2012年経営破綻" }
+    ],
+    question: "コダックが倒産した本質的な構造的原因は？",
+    options: [
+      "デジタル技術の開発に失敗したから",
+      "既存事業の収益を守るために、自ら発明した技術の普及を抑制したから",
+      "経営陣がデジタル化の流れに気づかなかったから",
+      "競合他社の技術力が圧倒的に優れていたから"
+    ],
+    correct: 1,
+    explanation: "コダックの失敗は「技術の欠如」ではなく「イノベーターのジレンマ」の典型例です。フィルム事業が高収益だったため、自社のデジタル技術が普及するとその収益が失われる。合理的な判断の積み重ねが、構造的に自社を破滅させた。",
+    chain: [
+      { text: "フィルム高収益", type: "root" },
+      { text: "デジタル普及＝収益破壊", type: "" },
+      { text: "デジタル投資抑制", type: "" },
+      { text: "市場シェア喪失", type: "" },
+      { text: "経営破綻", type: "result" }
+    ],
+    tags: ["イノベーターのジレンマ", "既存収益の罠", "自己破壊回避"]
+  },
+  {
+    title: "スターバックスの逆転",
+    type: "BUSINESS SUCCESS",
+    emoji: "☕",
+    color: "#40e880",
+    scenario: "1990年代のスターバックスは一般的なコーヒーチェーンに過ぎなかった。しかし「コーヒーを飲む場所」ではなく「サードプレイス（家でも職場でもない第三の場所）」という概念を打ち出した。価格は他のカフェの3〜4倍。それでも爆発的に成長し、世界最大のコーヒーチェーンになった。",
+    factors: [
+      { label: "価格", text: "競合の3〜4倍" },
+      { label: "コンセプト", text: "サードプレイス" },
+      { label: "商品", text: "コーヒーは差別化要因でない" },
+      { label: "体験", text: "空間・雰囲気に投資" },
+      { label: "結果", text: "世界最大チェーンへ" }
+    ],
+    question: "スターバックスが高価格でも成長できた本質的な構造は？",
+    options: [
+      "コーヒーの品質が他社より圧倒的に優れていたから",
+      "競合他社の価格戦略が間違っていたから",
+      "商品ではなく「体験と場所」を売ることで価格競争の土俵から外れたから",
+      "マーケティング予算が他社より多かったから"
+    ],
+    correct: 2,
+    explanation: "スターバックスが売ったのはコーヒーではなく「居場所」という体験です。コーヒーで競えば価格競争になる。しかし「サードプレイス」というフレームに変えることで、競合が存在しない市場を作った。これが価値の再定義による競争回避の構造です。",
+    chain: [
+      { text: "コーヒー市場＝価格競争", type: "root" },
+      { text: "体験・空間へ再定義", type: "" },
+      { text: "比較対象が消える", type: "" },
+      { text: "価格競争から離脱", type: "" },
+      { text: "高価格でも成長", type: "result" }
+    ],
+    tags: ["市場再定義", "体験価値", "競争回避"]
+  },
+  {
+    title: "SNS炎上の構造",
+    type: "SOCIAL SYSTEM",
+    emoji: "🔥",
+    color: "#e84040",
+    scenario: "SNS上で炎上が発生するとき、多くの場合「正義の声」が集まる形をとる。批判する人の大半は当事者と無関係で、数日後には全員が忘れる。しかし当事者にとっては生活や仕事に深刻なダメージが残る。プラットフォーム側は炎上コンテンツが「エンゲージメント」を高めることを知っている。",
+    factors: [
+      { label: "参加者", text: "大半が無関係の第三者" },
+      { label: "動機", text: "正義感・娯楽・同調" },
+      { label: "持続性", text: "数日で全員が忘れる" },
+      { label: "被害", text: "当事者に深刻なダメージ" },
+      { label: "PF利益", text: "炎上がエンゲージメント増加" }
+    ],
+    question: "SNS炎上が繰り返される本質的な構造的理由は？",
+    options: [
+      "悪意を持つ人間が増えているから",
+      "法律の規制が追いついていないから",
+      "プラットフォームの収益構造が炎上を促進するように設計されているから",
+      "メディアリテラシー教育が不足しているから"
+    ],
+    correct: 2,
+    explanation: "炎上が繰り返される根本はプラットフォームの収益構造にあります。怒りや論争は長時間滞在・大量クリックを生む。つまり炎上はプラットフォームにとって「正常に機能している状態」です。個人の悪意や教育の問題に帰結させると、構造が見えなくなります。",
+    chain: [
+      { text: "炎上＝高エンゲージメント", type: "root" },
+      { text: "PFが拡散を促進", type: "" },
+      { text: "参加者が増加", type: "" },
+      { text: "炎上の繰り返し", type: "" },
+      { text: "個人被害／PF収益増", type: "result" }
+    ],
+    tags: ["収益構造の歪み", "インセンティブ設計", "外部不経済"]
+  },
+  {
+    title: "大塚家具の失速",
+    type: "CORPORATE COLLAPSE",
+    emoji: "🪑",
+    color: "#e8c840",
+    scenario: "大塚家具はかつて「会員制・高級家具」で高い支持を得ていた。しかし2014年、創業者の父と娘の経営権争いが公になり、娘（社長）が勝利。その後「高級路線からカジュアル路線」へ方針転換した。IKEAやニトリという強力な競合がすでにカジュアル市場を席巻している中での転換だった。2019年にヤマダ電機傘下に入った。",
+    factors: [
+      { label: "元の強み", text: "高級・会員制・専門接客" },
+      { label: "転換先", text: "カジュアル・低価格路線" },
+      { label: "競合", text: "IKEA・ニトリが市場支配" },
+      { label: "顧客", text: "既存顧客層が離反" },
+      { label: "結果", text: "ヤマダ電機傘下に" }
+    ],
+    question: "大塚家具が失速した本質的な構造的原因は？",
+    options: [
+      "経営者同士の内紛がブランドイメージを傷つけたから",
+      "家具市場全体が縮小していたから",
+      "強みを捨てて、すでに強者がいる市場に後発で参入する戦略的矛盾があったから",
+      "マーケティング予算が不足していたから"
+    ],
+    correct: 2,
+    explanation: "大塚家具の失敗は「差別化の放棄」と「強者の土俵への参入」という二重の戦略的矛盾です。高級路線には明確な差別化があった。それを捨ててニトリ・IKEAが支配するカジュアル市場へ移行した。既存顧客も失い、新市場でも勝てない構造になりました。",
+    chain: [
+      { text: "高級路線で差別化", type: "root" },
+      { text: "カジュアルへ方針転換", type: "" },
+      { text: "既存顧客離反", type: "" },
+      { text: "IKEA・ニトリに勝てない", type: "" },
+      { text: "両市場で負ける", type: "result" }
+    ],
+    tags: ["差別化の放棄", "強者市場への参入", "ポジション喪失"]
+  },
+  {
+    title: "日本の少子化",
+    type: "SOCIAL SYSTEM",
+    emoji: "👶",
+    color: "#40c8e8",
+    scenario: "日本政府は30年以上にわたって少子化対策に多額の予算を投じてきた。保育所の拡充、育児手当の増額、産休・育休制度の整備。しかし出生率は改善されず、2023年には過去最低を更新した。「対策を打っているのになぜ改善しないのか」という問いに、多くの政治家は「予算が足りない」「さらなる支援が必要」と答える。",
+    factors: [
+      { label: "期間", text: "30年以上の対策継続" },
+      { label: "政策", text: "保育・手当・育休整備" },
+      { label: "結果", text: "出生率は過去最低更新" },
+      { label: "政府の診断", text: "「予算不足」" },
+      { label: "未対処", text: "経済的将来不安・長時間労働" }
+    ],
+    question: "少子化対策が効果を出せない本質的な構造的理由は？",
+    options: [
+      "予算規模がまだ不十分だから",
+      "若者の価値観が変化して子供を望まなくなったから",
+      "子育て支援という症状への対処をしているが、子供を持つことへの経済的・社会的リスクという根本原因に未対処だから",
+      "少子化は先進国共通の問題で解決不可能だから"
+    ],
+    correct: 2,
+    explanation: "少子化対策の失敗は「症状治療と原因治療の混同」の構造です。保育所・手当は「子育ての負担軽減」です。しかし問題の根本は「子供を持つという意思決定に至らない経済的不安・キャリアリスク・長時間労働文化」にあります。原因でなく症状を治療し続けた結果、30年間効果が出ていません。",
+    chain: [
+      { text: "経済不安・長時間労働", type: "root" },
+      { text: "子供を持つリスクが高い", type: "" },
+      { text: "出生意思が低下", type: "" },
+      { text: "支援充実も意思決定に届かない", type: "" },
+      { text: "出生率低下継続", type: "result" }
+    ],
+    tags: ["症状治療vs原因治療", "政策の構造的誤診", "インセンティブ不整合"]
+  }
+];
+
+function buildCaseIcon(c) {
+  const col = c.color;
+  return `
+    <rect x="15" y="15" width="90" height="90" rx="8" fill="none" stroke="${col}" stroke-width="2" opacity="0.3"/>
+    <rect x="25" y="25" width="70" height="70" rx="6" fill="none" stroke="${col}" stroke-width="1.5" opacity="0.5"/>
+    <text x="60" y="68" text-anchor="middle" font-size="36">${c.emoji}</text>
+    <rect x="20" y="88" width="80" height="16" rx="3" fill="${col}" opacity="0.1"/>
+    <text x="60" y="100" text-anchor="middle" font-family="Bebas Neue" font-size="10" fill="${col}" letter-spacing="1">${c.type.split(' ')[0]}</text>
+  `;
+}
+
+let currentCase = 0;
+let selectedOption = -1;
+let totalScore = 0;
+let timerInterval;
+let timeLeft = 120;
+let answered = false;
+let caseResults = [];
+
+function startGame() {
+  document.getElementById('title-screen').style.display = 'none';
+  document.getElementById('game-screen').style.display = 'block';
+  loadCase(0);
+}
+
+function loadCase(idx) {
+  answered = false;
+  selectedOption = -1;
+  const c = CASES[idx];
+
+  document.getElementById('hud-case').textContent = (idx+1) + '/5';
+  document.getElementById('progress-fill').style.width = (idx/5*100) + '%';
+  document.getElementById('case-badge').textContent = 'CASE 0' + (idx+1);
+  document.getElementById('case-svg').innerHTML = buildCaseIcon(c);
+  document.getElementById('status-badge').textContent = c.emoji;
+  document.getElementById('case-title-display').textContent = c.title;
+  document.getElementById('case-type-display').textContent = c.type;
+  document.getElementById('case-text').textContent = c.scenario;
+  document.getElementById('question-text').textContent = c.question;
+  document.getElementById('submit-btn').disabled = true;
+  document.getElementById('submit-hint').textContent = '選択してから判定';
+
+  const fl = document.getElementById('factor-list');
+  fl.innerHTML = '';
+  c.factors.forEach(f => {
+    const d = document.createElement('div');
+    d.className = 'factor-tag';
+    d.innerHTML = '<span>' + f.label + '</span>' + f.text;
+    d.onclick = () => d.classList.toggle('active');
+    fl.appendChild(d);
+  });
+
+  const og = document.getElementById('options-grid');
+  og.innerHTML = '';
+  const labels = ['A','B','C','D'];
+  c.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = '<span class="opt-num">' + labels[i] + '</span>' + opt;
+    btn.onclick = () => selectOption(i);
+    og.appendChild(btn);
+  });
+
+  startTimer();
+}
+
+function selectOption(i) {
+  if (answered) return;
+  selectedOption = i;
+  document.querySelectorAll('.option-btn').forEach((b, idx) => {
+    b.className = 'option-btn' + (idx === i ? ' selected' : '');
+  });
+  document.getElementById('submit-btn').disabled = false;
+  document.getElementById('submit-hint').textContent = '判定する準備OK';
+}
+
+function startTimer() {
+  clearInterval(timerInterval);
+  timeLeft = 120;
+  updateTimer();
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    updateTimer();
+    if (timeLeft <= 0) { clearInterval(timerInterval); if (!answered) submitAnswer(true); }
+  }, 1000);
+}
+
+function updateTimer() {
+  const el = document.getElementById('hud-timer');
+  const m = Math.floor(timeLeft/60);
+  const s = timeLeft % 60;
+  el.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+  el.className = 'hud-value' + (timeLeft <= 30 ? ' timer-warn' : '');
+}
+
+function submitAnswer(timeout) {
+  if (answered) return;
+  if (!timeout && selectedOption === -1) return;
+  answered = true;
+  clearInterval(timerInterval);
+
+  const c = CASES[currentCase];
+  const isCorrect = selectedOption === c.correct;
+  const timeBonus = isCorrect ? Math.floor(timeLeft / 120 * 50) : 0;
+  const pts = isCorrect ? (50 + timeBonus) : 0;
+  totalScore += pts;
+
+  document.querySelectorAll('.option-btn').forEach((b, i) => {
+    b.disabled = true;
+    if (i === c.correct) b.className = 'option-btn correct';
+    else if (i === selectedOption) b.className = 'option-btn wrong';
+  });
+
+  document.getElementById('hud-score').textContent = totalScore;
+  caseResults.push({ idx: currentCase, correct: isCorrect, timeLeft, timeout: !!timeout });
+
+  const verdict = document.getElementById('result-verdict');
+  if (timeout) { verdict.textContent = 'TIME OUT'; verdict.className = 'result-verdict timeout'; }
+  else if (isCorrect) { verdict.textContent = 'CORRECT !'; verdict.className = 'result-verdict correct'; }
+  else { verdict.textContent = 'INCORRECT'; verdict.className = 'result-verdict wrong'; }
+
+  document.getElementById('result-explanation').textContent = c.explanation;
+
+  const chainHtml = c.chain.map((node, i) => {
+    const cls = 's-node' + (node.type ? ' ' + node.type : '');
+    return `<span class="${cls}">${node.text}</span>` + (i < c.chain.length-1 ? '<span class="s-arrow">→</span>' : '');
+  }).join('');
+  document.getElementById('structure-map').innerHTML = `<div class="structure-map-title">STRUCTURE CHAIN</div><div class="structure-chain">${chainHtml}</div>`;
+
+  document.getElementById('stat-pts').textContent = '+' + pts;
+  document.getElementById('stat-time').textContent = timeLeft + 's';
+  document.getElementById('stat-total').textContent = totalScore;
+  document.getElementById('next-btn').textContent = currentCase < 4 ? 'NEXT CASE →' : 'SHOW RESULTS →';
+  document.getElementById('result-overlay').className = 'result-overlay show';
+}
+
+function nextCase() {
+  document.getElementById('result-overlay').className = 'result-overlay';
+  currentCase++;
+  if (currentCase >= CASES.length) showEnd();
+  else loadCase(currentCase);
+}
+
+function showEnd() {
+  document.getElementById('game-screen').style.display = 'none';
+  const end = document.getElementById('end-screen');
+  end.className = 'show';
+  document.getElementById('end-score').textContent = totalScore;
+  document.getElementById('progress-fill').style.width = '100%';
+
+  const correctCount = caseResults.filter(r => r.correct).length;
+  const avgTime = Math.round(caseResults.reduce((s,r) => s + r.timeLeft, 0) / caseResults.length);
+
+  let rank, rankSub;
+  if (totalScore >= 430)      { rank = '🔬 構造分解のエキスパート';   rankSub = '全ケースで根本原因を見抜きました'; }
+  else if (totalScore >= 320) { rank = '📐 優秀なアナリスト';         rankSub = 'ほとんどのケースで構造を正確に読めました'; }
+  else if (totalScore >= 200) { rank = '🔍 見習いストラテジスト';     rankSub = '表面と構造を混同するケースがありました'; }
+  else                        { rank = '📋 訓練が必要';               rankSub = '現象ではなく「なぜ起きるか」の構造を見る練習を'; }
+
+  document.getElementById('end-rank').textContent = rank;
+  document.getElementById('end-rank-sub').textContent = rankSub;
+
+  const correctTags = caseResults.filter(r => r.correct).flatMap(r => CASES[r.idx].tags);
+  const wrongTags   = caseResults.filter(r => !r.correct).flatMap(r => CASES[r.idx].tags);
+  const timeouts    = caseResults.filter(r => r.timeout);
+  const fastCorrect = caseResults.filter(r => r.correct && r.timeLeft >= 90);
+
+  const caseRows = caseResults.map(r => {
+    const c = CASES[r.idx];
+    const icon = r.correct ? '✓' : (r.timeout ? '⏱' : '✕');
+    const iconColor = r.correct ? 'var(--success)' : (r.timeout ? 'var(--text2)' : 'var(--danger)');
+    const tagHtml = c.tags.map(t => `<span style="font-size:10px;background:rgba(64,232,128,0.1);border:1px solid rgba(64,232,128,0.25);color:var(--accent);padding:2px 8px;margin-right:4px;">${t}</span>`).join('');
+    const pts = r.correct ? (50 + Math.floor(r.timeLeft/120*50)) : 0;
+    return `<div style="background:var(--panel2);border:1px solid var(--border);padding:14px 16px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:${iconColor};min-width:20px;">${icon}</span>
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:700;color:var(--text);">${c.title} <span style="font-size:11px;color:var(--accent);font-family:'Bebas Neue',sans-serif;letter-spacing:.1em;">${c.type}</span></div>
+          <div style="margin-top:4px;">${tagHtml}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent);">+${pts}</div>
+          <div style="font-size:10px;color:var(--text2);">残り${r.timeLeft}s</div>
+        </div>
+      </div>
+      ${!r.correct ? `<div style="font-size:12px;color:var(--text2);border-left:2px solid var(--danger);padding-left:10px;line-height:1.6;">${c.explanation}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  let strengthLines = [];
+  let weaknessLines = [];
+
+  if (correctCount === 5) strengthLines.push('全問正解。現象ではなく構造として世界を読む力が完成されています。');
+  else if (correctCount >= 4) strengthLines.push('高い正答率。根本原因への到達が安定しています。');
+  else if (correctCount >= 3) strengthLines.push('半数以上を正解。構造的思考の基礎があります。');
+  else weaknessLines.push('正答率が低め。見えている現象を「なぜ起きているか」に変換する練習が必要です。');
+
+  if (correctTags.some(t => ['イノベーターのジレンマ','差別化の放棄','ポジション喪失'].includes(t)))
+    strengthLines.push('企業戦略の構造的矛盾を見抜く力があります。');
+  if (correctTags.some(t => ['収益構造の歪み','インセンティブ設計','外部不経済'].includes(t)))
+    strengthLines.push('インセンティブ設計の問題を構造として読めています。');
+  if (correctTags.some(t => ['症状治療vs原因治療','政策の構造的誤診'].includes(t)))
+    strengthLines.push('「対策しているのに改善しない」という構造的誤診を見抜けています。これは高度な分析力です。');
+  if (fastCorrect.length >= 3) strengthLines.push('判断が速い。構造の核心への直感が鋭いです。');
+
+  if (wrongTags.some(t => ['イノベーターのジレンマ','既存収益の罠'].includes(t)))
+    weaknessLines.push('「合理的判断の積み重ねが破綻を生む」構造は見落としがちです。個別判断ではなくシステム全体を見る練習を。');
+  if (wrongTags.some(t => ['市場再定義','競争回避'].includes(t)))
+    weaknessLines.push('競争に「勝つ」ではなく「競争の土俵を変える」という構造視点を鍛えるとよいです。');
+  if (wrongTags.some(t => ['症状治療vs原因治療','政策の構造的誤診'].includes(t)))
+    weaknessLines.push('「対策をしているのになぜ改善しないか」という問いを立てる習慣が重要です。原因と症状を区別する練習を。');
+  if (timeouts.length >= 2) weaknessLines.push('時間切れが多め。情報整理に時間をかけすぎている可能性があります。まず「誰が得をしているか」を考えると構造が見えやすくなります。');
+
+  if (strengthLines.length === 0) strengthLines.push('データを積み上げていきましょう。');
+  if (weaknessLines.length === 0) weaknessLines.push('現時点での明確な弱点は見当たりません。より複雑なケースで試してみてください。');
+
+  document.getElementById('end-analysis').innerHTML = `
+    <div style="margin-bottom:20px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.2em;color:var(--text2);margin-bottom:12px;">CASE REVIEW</div>
+      ${caseRows}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+      <div style="background:rgba(64,232,128,0.06);border:1px solid rgba(64,232,128,0.2);padding:16px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:.2em;color:var(--accent);margin-bottom:10px;">STRENGTHS</div>
+        ${strengthLines.map(l => `<div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:6px;padding-left:10px;border-left:2px solid var(--accent);">${l}</div>`).join('')}
+      </div>
+      <div style="background:rgba(232,64,64,0.06);border:1px solid rgba(232,64,64,0.2);padding:16px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:.2em;color:var(--danger);margin-bottom:10px;">AREAS TO TRAIN</div>
+        ${weaknessLines.map(l => `<div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:6px;padding-left:10px;border-left:2px solid var(--danger);">${l}</div>`).join('')}
+      </div>
+    </div>
+    <div style="background:var(--panel2);border:1px solid var(--border);padding:14px 16px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:.2em;color:var(--text2);margin-bottom:8px;">STATS</div>
+      <div style="display:flex;gap:24px;font-size:13px;color:var(--text2);">
+        <span>正解率 <strong style="color:var(--text)">${correctCount}/5</strong></span>
+        <span>平均残り時間 <strong style="color:var(--text)">${avgTime}s</strong></span>
+        <span>合計スコア <strong style="color:var(--accent)">${totalScore}pt</strong></span>
+      </div>
+    </div>`;
+}
+
+function resetGame() {
+  currentCase = 0; selectedOption = -1; totalScore = 0; answered = false; caseResults = [];
+  document.getElementById('end-screen').className = '';
+  document.getElementById('title-screen').style.display = 'flex';
+}
+
+function setFont(size) {
+  document.body.classList.remove('font-sm', 'font-lg');
+  if (size !== 'md') document.body.classList.add('font-' + size);
+  document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
+  const map = { sm: 0, md: 1, lg: 2 };
+  document.querySelectorAll('.font-btn')[map[size]].classList.add('active');
+}
+
+function shareResult() {
+  const correctCount = caseResults.filter(r => r.correct).length;
+  const rankEl = document.getElementById('end-rank');
+  const rank = rankEl ? rankEl.textContent.replace(/^[^\s]+\s/, '') : '';
+  const text = `【STRUCTURE BREAKER】\n構造分解ゲームに挑戦！\n正解率: ${correctCount}/5 | スコア: ${totalScore}点\nランク: ${rank}\nhttps://siesta-club.github.io/Logical_thinking/\n#STRUCTUREBREAKER #論理的思考 #構造分解`;
+
+  if (navigator.share) {
+    navigator.share({ text }).catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('share-btn');
+    const orig = btn.textContent;
+    btn.textContent = 'COPIED !';
+    setTimeout(() => btn.textContent = orig, 2000);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    const btn = document.getElementById('share-btn');
+    const orig = btn.textContent;
+    btn.textContent = 'COPIED !';
+    setTimeout(() => btn.textContent = orig, 2000);
+  });
+}
+</script>
+</body>
+</html>
