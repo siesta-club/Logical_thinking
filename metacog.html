@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>メタ認知トレーニング - META LENS</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f0a0f;
+  --panel: #1a121a;
+  --panel2: #221a22;
+  --accent: #c840e8;
+  --accent2: #e84080;
+  --success: #40e880;
+  --danger: #e84040;
+  --text: #f0f0f0;
+  --text2: #aa88aa;
+  --border: rgba(255,255,255,0.08);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Noto Sans JP', sans-serif; min-height: 100vh; overflow-x: hidden; }
+body.font-sm .scenario-text, body.font-sm .option-btn { font-size: 12px; }
+body.font-sm .question-text { font-size: 14px; }
+body.font-lg .scenario-text, body.font-lg .option-btn { font-size: 17px; }
+body.font-lg .question-text { font-size: 19px; }
+body.font-lg .clue-tag { font-size: 14px; }
+body::after { content: ''; position: fixed; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px); pointer-events: none; z-index: 9999; }
+
+/* TITLE */
+#title-screen { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; background: radial-gradient(ellipse at center, #1a0a1a 0%, #0f0a0f 70%); }
+.grid-bg { position: absolute; inset: 0; background-image: linear-gradient(rgba(200,64,232,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(200,64,232,0.04) 1px, transparent 1px); background-size: 40px 40px; }
+.title-logo { font-family: 'Bebas Neue', sans-serif; font-size: clamp(48px, 10vw, 90px); color: var(--accent); letter-spacing: 0.1em; text-shadow: 0 0 40px rgba(200,64,232,0.4); animation: flicker 4s infinite; position: relative; z-index: 1; }
+.title-sub { font-size: 13px; color: var(--accent2); letter-spacing: 0.3em; margin-top: 8px; position: relative; z-index: 1; }
+.title-icon { position: relative; z-index: 1; margin: 36px 0; }
+.start-btn { position: relative; z-index: 1; background: transparent; border: 2px solid var(--accent); color: var(--accent); font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 0.2em; padding: 14px 48px; cursor: pointer; transition: all 0.2s; animation: pulse-border 2s infinite; }
+.start-btn:hover { background: var(--accent); color: var(--bg); box-shadow: 0 0 30px rgba(200,64,232,0.5); }
+.title-hint { position: relative; z-index: 1; margin-top: 16px; font-size: 12px; color: var(--text2); letter-spacing: 0.1em; }
+
+/* HEADER */
+#game-screen { display: none; min-height: 100vh; }
+.game-header { background: var(--panel); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+.game-logo { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--accent); letter-spacing: 0.1em; }
+.hud { display: flex; gap: 24px; align-items: center; }
+.hud-item { text-align: center; }
+.hud-label { font-size: 10px; color: var(--text2); letter-spacing: 0.1em; }
+.hud-value { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--text); line-height: 1; }
+.hud-value.accent { color: var(--accent); }
+.hud-value.timer-warn { color: var(--danger); animation: flash 0.5s infinite; }
+.font-ctrl { display: flex; gap: 4px; align-items: center; }
+.font-btn { background: transparent; border: 1px solid var(--border); color: var(--text2); font-family: 'Noto Sans JP', sans-serif; font-size: 13px; padding: 4px 8px; cursor: pointer; transition: all 0.15s; }
+.font-btn:hover { border-color: var(--accent); color: var(--accent); }
+.font-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(200,64,232,0.1); }
+.progress-track { height: 3px; background: var(--border); }
+.progress-fill { height: 100%; background: var(--accent); transition: width 0.5s; }
+
+/* BODY */
+.game-body { display: grid; grid-template-columns: 260px 1fr; min-height: calc(100vh - 73px); }
+.left-panel { background: var(--panel); border-right: 1px solid var(--border); padding: 24px 20px; display: flex; flex-direction: column; align-items: center; }
+.case-badge { font-family: 'Bebas Neue', sans-serif; font-size: 12px; letter-spacing: 0.2em; color: var(--accent2); background: rgba(232,64,128,0.1); border: 1px solid rgba(232,64,128,0.3); padding: 4px 12px; margin-bottom: 20px; }
+.case-icon-wrap { width: 130px; height: 130px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; position: relative; }
+.case-icon-wrap svg { width: 100%; height: 100%; }
+.status-badge { position: absolute; top: -6px; right: -6px; width: 34px; height: 34px; background: var(--panel2); border: 2px solid var(--accent2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; animation: float 2s ease-in-out infinite; }
+.case-title-display { font-size: 14px; font-weight: 700; color: var(--text); text-align: center; margin-bottom: 4px; }
+.case-type { font-size: 11px; color: var(--accent); text-align: center; letter-spacing: 0.1em; margin-bottom: 20px; font-family: 'Bebas Neue', sans-serif; }
+.clues-title { font-family: 'Bebas Neue', sans-serif; font-size: 12px; letter-spacing: 0.2em; color: var(--text2); align-self: flex-start; margin-bottom: 10px; }
+.clue-list { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.clue-tag { background: var(--panel2); border: 1px solid var(--border); border-left: 3px solid var(--accent); padding: 8px 10px; font-size: 12px; color: var(--text2); cursor: pointer; transition: all 0.15s; }
+.clue-tag span { font-size: 10px; color: var(--accent); display: block; margin-bottom: 2px; font-weight: 700; letter-spacing: 0.05em; }
+.clue-tag:hover, .clue-tag.active { background: rgba(200,64,232,0.08); border-color: var(--accent); color: var(--text); }
+
+/* MAIN */
+.main-panel { padding: 28px 32px; background: var(--bg); }
+.scenario-box { background: var(--panel); border: 1px solid var(--border); border-top: 3px solid var(--accent2); padding: 20px 24px; margin-bottom: 24px; position: relative; }
+.scenario-box::before { content: 'LOG'; position: absolute; top: -1px; right: 16px; background: var(--accent2); color: var(--bg); font-family: 'Bebas Neue', sans-serif; font-size: 11px; letter-spacing: 0.15em; padding: 2px 10px; }
+.scenario-text { font-size: 14px; line-height: 1.9; color: var(--text); }
+.question-label { font-family: 'Bebas Neue', sans-serif; font-size: 13px; letter-spacing: 0.2em; color: var(--accent); margin-bottom: 12px; }
+.question-text { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 20px; line-height: 1.5; }
+.options-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+.option-btn { background: var(--panel); border: 1px solid var(--border); color: var(--text); padding: 14px 18px; text-align: left; font-size: 14px; font-family: 'Noto Sans JP', sans-serif; cursor: pointer; transition: all 0.15s; display: flex; align-items: flex-start; gap: 12px; line-height: 1.5; }
+.option-btn .opt-num { font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: var(--text2); min-width: 24px; transition: color 0.15s; flex-shrink: 0; }
+.option-btn:hover { border-color: var(--accent); background: rgba(200,64,232,0.05); }
+.option-btn:hover .opt-num { color: var(--accent); }
+.option-btn.selected { border-color: var(--accent); background: rgba(200,64,232,0.1); }
+.option-btn.selected .opt-num { color: var(--accent); }
+.option-btn.correct { border-color: var(--success); background: rgba(64,232,128,0.1); }
+.option-btn.correct .opt-num { color: var(--success); }
+.option-btn.wrong { border-color: var(--danger); background: rgba(232,64,64,0.1); }
+.option-btn.wrong .opt-num { color: var(--danger); }
+.option-btn:disabled { cursor: default; }
+.action-row { display: flex; gap: 12px; align-items: center; }
+.submit-btn { background: var(--accent); color: var(--bg); border: none; font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 0.15em; padding: 12px 36px; cursor: pointer; transition: all 0.15s; }
+.submit-btn:hover { box-shadow: 0 0 20px rgba(200,64,232,0.4); }
+.submit-btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+
+/* RESULT */
+.result-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; align-items: center; justify-content: center; }
+.result-overlay.show { display: flex; }
+.result-box { background: var(--panel); border: 1px solid var(--border); border-top: 4px solid var(--accent); width: 90%; max-width: 580px; padding: 32px; animation: slide-up 0.3s ease; max-height: 90vh; overflow-y: auto; }
+.result-verdict { font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 0.1em; margin-bottom: 8px; }
+.result-verdict.correct { color: var(--success); }
+.result-verdict.wrong { color: var(--danger); }
+.result-verdict.timeout { color: var(--text2); }
+.result-explanation { font-size: 14px; color: var(--text2); line-height: 1.8; margin-bottom: 16px; padding: 16px; background: var(--panel2); border-left: 3px solid var(--accent); }
+.bias-box { background: var(--panel2); border: 1px solid var(--border); padding: 14px 16px; margin-bottom: 20px; }
+.bias-title { font-family: 'Bebas Neue', sans-serif; font-size: 11px; letter-spacing: 0.2em; color: var(--accent2); margin-bottom: 8px; }
+.bias-name { font-size: 15px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+.bias-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+.result-stats { display: flex; gap: 16px; margin-bottom: 24px; }
+.stat-box { flex: 1; background: var(--panel2); border: 1px solid var(--border); padding: 12px; text-align: center; }
+.stat-num { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--accent); }
+.stat-label { font-size: 11px; color: var(--text2); letter-spacing: 0.1em; }
+.next-btn { width: 100%; background: var(--accent); color: var(--bg); border: none; font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 0.15em; padding: 14px; cursor: pointer; transition: all 0.15s; }
+.next-btn:hover { box-shadow: 0 0 20px rgba(200,64,232,0.4); }
+
+/* END */
+#end-screen { display: none; min-height: 100vh; background: radial-gradient(ellipse at center, #1a0a1a 0%, #0f0a0f 70%); align-items: flex-start; justify-content: center; flex-direction: column; position: relative; overflow-y: auto; }
+#end-screen.show { display: flex; }
+.end-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(200,64,232,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(200,64,232,0.03) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; }
+.end-content { position: relative; z-index: 1; text-align: center; padding: 40px 24px; width: 100%; max-width: 680px; margin: 0 auto; }
+.end-title { font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 0.3em; color: var(--accent2); margin-bottom: 8px; }
+.end-score { font-family: 'Bebas Neue', sans-serif; font-size: clamp(72px, 15vw, 120px); color: var(--accent); line-height: 1; text-shadow: 0 0 40px rgba(200,64,232,0.3); }
+.end-max { font-size: 18px; color: var(--text2); margin-bottom: 16px; }
+.rank-display { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 0.1em; color: var(--text); margin-bottom: 6px; }
+.rank-sub { font-size: 13px; color: var(--text2); margin-bottom: 32px; }
+.share-btn { background: transparent; border: 2px solid var(--accent); color: var(--accent); font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 0.15em; padding: 12px 28px; cursor: pointer; transition: all 0.2s; margin-bottom: 12px; }
+.share-btn:hover { background: var(--accent); color: var(--bg); }
+.replay-btn { background: transparent; border: 2px solid var(--accent); color: var(--accent); font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 0.2em; padding: 12px 40px; cursor: pointer; transition: all 0.2s; }
+.replay-btn:hover { background: var(--accent); color: var(--bg); }
+
+@keyframes flicker { 0%,95%,100%{opacity:1}96%{opacity:0.8}97%{opacity:1}98%{opacity:0.7} }
+@keyframes pulse-border { 0%,100%{box-shadow:0 0 0 0 rgba(200,64,232,0)}50%{box-shadow:0 0 0 8px rgba(200,64,232,0.15)} }
+@keyframes float { 0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)} }
+@keyframes flash { 0%,100%{opacity:1}50%{opacity:0.4} }
+@keyframes slide-up { from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1} }
+@media(max-width:700px){.game-body{grid-template-columns:1fr}.left-panel{display:none}.main-panel{padding:16px}}
+</style>
+</head>
+<body>
+
+<!-- TITLE -->
+<div id="title-screen">
+  <div class="grid-bg"></div>
+  <div class="title-logo">META LENS</div>
+  <div class="title-sub">メタ認知 — 思考の歪みを見抜け</div>
+  <div class="title-icon">
+    <svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 0 20px rgba(200,64,232,0.4))">
+      <circle cx="60" cy="60" r="48" fill="none" stroke="#c840e8" stroke-width="1.5" opacity="0.3"/>
+      <circle cx="60" cy="60" r="34" fill="none" stroke="#c840e8" stroke-width="1.5" opacity="0.5"/>
+      <circle cx="60" cy="60" r="18" fill="none" stroke="#c840e8" stroke-width="2"/>
+      <circle cx="60" cy="60" r="4" fill="#c840e8"/>
+      <line x1="60" y1="12" x2="60" y2="26" stroke="#e84080" stroke-width="1.5"/>
+      <line x1="60" y1="94" x2="60" y2="108" stroke="#e84080" stroke-width="1.5"/>
+      <line x1="12" y1="60" x2="26" y2="60" stroke="#e84080" stroke-width="1.5"/>
+      <line x1="94" y1="60" x2="108" y2="60" stroke="#e84080" stroke-width="1.5"/>
+      <path d="M44 44 L52 52" stroke="#c840e8" stroke-width="1.5" opacity="0.6"/>
+      <path d="M68 44 L76 52" stroke="#c840e8" stroke-width="1.5" opacity="0.6" transform="scale(-1,1) translate(-120,0)"/>
+      <text x="60" y="18" text-anchor="middle" font-family="Bebas Neue" font-size="9" fill="#e84080" letter-spacing="1">OBSERVE</text>
+      <text x="60" y="110" text-anchor="middle" font-family="Bebas Neue" font-size="9" fill="#e84080" letter-spacing="1">ANALYZE</text>
+    </svg>
+  </div>
+  <button class="start-btn" onclick="startGame()">GAME START</button>
+  <div class="title-hint">5つのケースに挑め — 制限時間 2分/問</div>
+</div>
+
+<!-- GAME -->
+<div id="game-screen">
+  <div class="game-header">
+    <div class="game-logo">META LENS</div>
+    <div class="hud">
+      <div class="font-ctrl">
+        <button class="font-btn" onclick="setFont('sm')">小</button>
+        <button class="font-btn active" onclick="setFont('md')">中</button>
+        <button class="font-btn" onclick="setFont('lg')">大</button>
+      </div>
+      <div class="hud-item"><div class="hud-label">SCORE</div><div class="hud-value accent" id="hud-score">0</div></div>
+      <div class="hud-item"><div class="hud-label">TIME</div><div class="hud-value" id="hud-timer">2:00</div></div>
+      <div class="hud-item"><div class="hud-label">CASE</div><div class="hud-value" id="hud-case">1/5</div></div>
+    </div>
+  </div>
+  <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+  <div class="game-body">
+    <div class="left-panel">
+      <div class="case-badge" id="case-badge">CASE 01</div>
+      <div class="case-icon-wrap">
+        <svg id="case-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div class="status-badge" id="status-badge">🧠</div>
+      </div>
+      <div class="case-title-display" id="case-title-display"></div>
+      <div class="case-type" id="case-type-display"></div>
+      <div class="clues-title">SIGNAL</div>
+      <div class="clue-list" id="clue-list"></div>
+    </div>
+    <div class="main-panel">
+      <div class="scenario-box"><div class="scenario-text" id="scenario-text"></div></div>
+      <div class="question-label">QUESTION — 思考の歪みを特定せよ</div>
+      <div class="question-text" id="question-text"></div>
+      <div class="options-grid" id="options-grid"></div>
+      <div class="action-row">
+        <button class="submit-btn" id="submit-btn" onclick="submitAnswer()">ANALYZE</button>
+        <span style="font-size:12px;color:var(--text2)" id="submit-hint">選択してから判定</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div class="result-overlay" id="result-overlay">
+  <div class="result-box">
+    <div class="result-verdict" id="result-verdict"></div>
+    <div class="result-explanation" id="result-explanation"></div>
+    <div class="bias-box" id="bias-box"></div>
+    <div class="result-stats">
+      <div class="stat-box"><div class="stat-num" id="stat-pts"></div><div class="stat-label">POINTS</div></div>
+      <div class="stat-box"><div class="stat-num" id="stat-time"></div><div class="stat-label">TIME LEFT</div></div>
+      <div class="stat-box"><div class="stat-num" id="stat-total"></div><div class="stat-label">TOTAL</div></div>
+    </div>
+    <button class="next-btn" id="next-btn" onclick="nextCase()">NEXT CASE →</button>
+  </div>
+</div>
+
+<!-- END -->
+<div id="end-screen">
+  <div class="end-grid"></div>
+  <div class="end-content">
+    <div class="end-title">ANALYSIS COMPLETE</div>
+    <div class="end-score" id="end-score">0</div>
+    <div class="end-max">/ 500点</div>
+    <div class="rank-display" id="end-rank"></div>
+    <div class="rank-sub" id="end-rank-sub"></div>
+    <div id="end-analysis" style="text-align:left;width:100%;margin:0 auto 24px;"></div>
+    <button class="share-btn" id="share-btn" onclick="shareResult()">SHARE RESULT</button>
+    <br>
+    <button class="replay-btn" onclick="resetGame()">PLAY AGAIN</button>
+  </div>
+</div>
+
+<script>
+const CASES = [
+  {
+    title: "田村の反論",
+    type: "LOGICAL FALLACY",
+    emoji: "💬",
+    color: "#c840e8",
+    scenario: `部長：「先月のA案件、顧客満足度が90%だったよ。やっぱり丁寧な対応が大事だね」
+田村：「でも部長、B案件は満足度60%でしたよね。同じ対応してたのに。結局、顧客の性格次第じゃないですか」
+部長：「まあ…それもあるかもしれないけど」
+田村：「あと、C案件もD案件も60%台でした。つまり丁寧な対応って、実はそんなに効果ないと思います」`,
+    clues: [
+      { label: "主張1", text: "部長：丁寧な対応が有効" },
+      { label: "反論", text: "田村：他案件は60%台" },
+      { label: "結論", text: "田村：対応は効果なし" },
+      { label: "未検討", text: "案件ごとの条件差" },
+      { label: "サンプル", text: "A案件のみ90%、他は低い" }
+    ],
+    question: "田村の反論に含まれる論理的な問題は何か？",
+    options: [
+      "反論に根拠がなく感情的な主張をしている",
+      "部長の主張の一部だけを取り上げて全体を否定している",
+      "成功例を無視して失敗例だけで結論を出している",
+      "顧客満足度という指標自体が信頼できないと主張している"
+    ],
+    correct: 2,
+    explanation: "田村は「B・C・D案件が低い」という失敗例を積み上げて「対応は効果ない」と結論づけています。しかしA案件が90%だった理由（顧客特性・案件難易度・担当者など）を比較せず、失敗例のみで全体を判断するのは「選択的証拠」の誤謬です。",
+    bias: { name: "選択的証拠（チェリーピッキング）", desc: "自分の結論に都合のよい証拠だけを選んで提示し、反証となるデータを無視する思考パターン。失敗例だけを並べても、成功例との条件比較なしに結論は導けない。" },
+    tags: ["選択的証拠", "論理的誤謬", "比較条件の無視"]
+  },
+  {
+    title: "松本の自己評価",
+    type: "SELF METACOGNITION",
+    emoji: "🪞",
+    color: "#e84080",
+    scenario: `松本さんは営業成績が好調で、今期3件の大型契約を取った。
+「やっぱり私の提案力が高いからだと思います。事前準備を徹底して、顧客のニーズを正確に把握できているんです」
+同僚の話によると、今期は業界全体が好景気で競合他社も軒並み成績が上がっていた。また3件中2件は、顧客側から先にアプローチしてきた案件だった。`,
+    clues: [
+      { label: "松本の評価", text: "自分の提案力が高い" },
+      { label: "外部要因", text: "業界全体が好景気" },
+      { label: "案件内訳", text: "3件中2件は顧客からアプローチ" },
+      { label: "同僚", text: "競合他社も成績上昇" },
+      { label: "自己認識", text: "準備と把握力を要因として挙げる" }
+    ],
+    question: "松本さんの自己評価に含まれる認知の歪みは何か？",
+    options: [
+      "自分の能力を過小評価している",
+      "成功の原因を自分の能力に帰属させ、外部要因を見落としている",
+      "同僚の評価を気にしすぎている",
+      "過去の失敗を忘れて楽観的になっている"
+    ],
+    correct: 1,
+    explanation: "松本さんは成功を「自分の提案力」に帰属させていますが、業界好景気・顧客からのアプローチという外部要因が大きく働いています。成功を内部要因に、失敗を外部要因に帰属させやすい「自己奉仕バイアス」の典型例です。自分の実力を正確に測るには外部条件を切り分ける必要があります。",
+    bias: { name: "自己奉仕バイアス（Self-serving bias）", desc: "成功は自分の能力や努力のおかげ、失敗は環境や他者のせいと解釈する傾向。自己評価を保護する機能があるが、正確な実力把握を妨げる。" },
+    tags: ["自己奉仕バイアス", "帰属の誤り", "外部要因の無視"]
+  },
+  {
+    title: "会議室の合意",
+    type: "GROUP METACOGNITION",
+    emoji: "👥",
+    color: "#c840e8",
+    scenario: `新製品の価格設定会議。
+山田部長：「やっぱり高価格帯で行くべきだと思う。プレミアム戦略だ」
+鈴木：「そうですね、確かにブランド価値が上がりますね」
+中村：「私も賛成です。高価格の方が利益率も良いですし」
+佐藤：「（少し迷ったが）…そうですね、私もそれで良いと思います」
+実は佐藤さんは競合調査から「市場は低価格帯を求めている」というデータを持っていたが、会議の雰囲気を壊したくなかったため発言しなかった。`,
+    clues: [
+      { label: "会議の流れ", text: "全員が高価格に賛成" },
+      { label: "佐藤の内情", text: "反証データを持っていた" },
+      { label: "行動", text: "雰囲気を壊したくなかった" },
+      { label: "結果", text: "全員一致で高価格に決定" },
+      { label: "データ", text: "市場は低価格帯を求めている" }
+    ],
+    question: "この会議で起きている集団的な思考の問題は何か？",
+    options: [
+      "部長の意見が間違っているのに誰も気づいていない",
+      "参加者全員が意図的に情報を隠している",
+      "同調圧力によって反証情報が抑制され、集団として誤った結論に向かっている",
+      "佐藤さんの調査方法が信頼できない"
+    ],
+    correct: 2,
+    explanation: "これは「集団思考（グループシンク）」の典型例です。集団の和を乱したくないという同調圧力が働き、反証データを持つ佐藤さんが沈黙した。結果として批判的検討なしに意思決定がされています。重要な情報が「空気」によって消される構造です。",
+    bias: { name: "集団思考（Groupthink）", desc: "集団の凝集性や調和を保とうとする圧力が強くなり、批判的・代替的な思考が抑制される現象。反対意見や不都合な情報が「空気を読んで」自己検閲される。" },
+    tags: ["集団思考", "同調圧力", "情報の自己検閲"]
+  },
+  {
+    title: "高橋の確信",
+    type: "CONFIRMATION BIAS",
+    emoji: "🔍",
+    color: "#e84080",
+    scenario: `高橋さんは「うちのチームは残業が多いのはメンバーの能力が低いからだ」と考えている。
+ある日、A君が深夜まで残業しているのを見て「やっぱりそうだ」と確信した。
+翌日、B君が定時で帰ったのを見て「あいつは仕事を放棄している」と思った。
+その後、業務量が多すぎるという調査結果が出たが「それは言い訳だ」と却下した。`,
+    clues: [
+      { label: "前提", text: "能力が低いから残業が多い" },
+      { label: "観察1", text: "残業→「やっぱりそうだ」" },
+      { label: "観察2", text: "定時退社→「仕事放棄だ」" },
+      { label: "反証", text: "業務量過多の調査結果を却下" },
+      { label: "一貫性", text: "全ての観察が前提を支持する方向に解釈" }
+    ],
+    question: "高橋さんの思考パターンの本質的な問題は何か？",
+    options: [
+      "メンバーへの感情的な反感が判断を歪めている",
+      "最初に持った仮説を支持する情報だけを集め、反証を排除している",
+      "管理職として責任感が強すぎる",
+      "調査結果の信頼性を疑う科学的な態度をとっている"
+    ],
+    correct: 1,
+    explanation: "高橋さんは「能力が低い」という仮説を先に持ち、その後の全ての観察をその仮説に合うように解釈しています。残業も定時退社も、反証データも全てが「確証」に変換される。これが確証バイアスの典型構造で、仮説を反証する可能性を最初から閉じています。",
+    bias: { name: "確証バイアス（Confirmation bias）", desc: "最初に持った仮説や信念を支持する情報ばかりを収集・解釈し、反証となる情報を無視・軽視する傾向。反証不可能な状態に自分を置いてしまう。" },
+    tags: ["確証バイアス", "仮説の固定化", "反証の排除"]
+  },
+  {
+    title: "伊藤の判断",
+    type: "METACOGNITIVE BLIND SPOT",
+    emoji: "🧩",
+    color: "#c840e8",
+    scenario: `伊藤さんは「自分はバイアスに気をつけているので、偏りのない判断ができる」と自信を持っている。
+同僚の意見を聞いたとき「彼女は感情的だからな」と思いながら却下した。
+データを見たとき、自分の仮説に合う部分を詳しく読み、合わない部分は「例外だ」と処理した。
+会議で反論されたとき「この人は全体像が見えていない」と内心思った。
+後で振り返り「今日も偏りなく判断できた」と満足した。`,
+    clues: [
+      { label: "自己認識", text: "バイアスなく判断できている" },
+      { label: "他者評価", text: "感情的・全体像が見えないと判断" },
+      { label: "データ処理", text: "都合の良い部分だけ詳しく読む" },
+      { label: "反証処理", text: "「例外だ」と却下" },
+      { label: "振り返り", text: "「今日も偏りなかった」と満足" }
+    ],
+    question: "伊藤さんの思考に潜む最も根本的な問題は何か？",
+    options: [
+      "自分に自信がありすぎて謙虚さが足りない",
+      "「自分はバイアスがない」という認識自体がバイアスとなり、自己検証が機能していない",
+      "同僚の能力を正当に評価できていない",
+      "データ分析のスキルが不足している"
+    ],
+    correct: 1,
+    explanation: "これはメタ認知の盲点（Bias blind spot）です。「自分はバイアスがない」という確信が、実際のバイアスを不可視にしています。バイアスの自覚がある人ほど「自分は例外」と思いやすい。本当のメタ認知とは「自分もバイアスがある」という前提で自己検証し続けることです。",
+    bias: { name: "バイアス盲点（Bias blind spot）", desc: "他者のバイアスは見えるが、自分のバイアスは見えにくいという現象。「自分はバイアスがない」という認識そのものがバイアスとして機能し、自己検証を妨げる。" },
+    tags: ["バイアス盲点", "メタ認知の失敗", "自己検証の欠如"]
+  }
+];
+
+function buildCaseIcon(c) {
+  return `
+    <circle cx="60" cy="60" r="48" fill="none" stroke="${c.color}" stroke-width="1.5" opacity="0.2"/>
+    <circle cx="60" cy="60" r="32" fill="none" stroke="${c.color}" stroke-width="1.5" opacity="0.4"/>
+    <circle cx="60" cy="60" r="16" fill="none" stroke="${c.color}" stroke-width="2" opacity="0.7"/>
+    <circle cx="60" cy="60" r="4" fill="${c.color}"/>
+    <text x="60" y="100" text-anchor="middle" font-family="Bebas Neue" font-size="9" fill="${c.color}" letter-spacing="1" opacity="0.8">${c.type.split(' ')[0]}</text>
+  `;
+}
+
+let currentCase = 0, selectedOption = -1, totalScore = 0;
+let timerInterval, timeLeft = 120, answered = false, caseResults = [];
+
+function startGame() {
+  document.getElementById('title-screen').style.display = 'none';
+  document.getElementById('game-screen').style.display = 'block';
+  loadCase(0);
+}
+
+function loadCase(idx) {
+  answered = false; selectedOption = -1;
+  const c = CASES[idx];
+  document.getElementById('hud-case').textContent = (idx+1) + '/5';
+  document.getElementById('progress-fill').style.width = (idx/5*100) + '%';
+  document.getElementById('case-badge').textContent = 'CASE 0' + (idx+1);
+  document.getElementById('case-svg').innerHTML = buildCaseIcon(c);
+  document.getElementById('status-badge').textContent = c.emoji;
+  document.getElementById('case-title-display').textContent = c.title;
+  document.getElementById('case-type-display').textContent = c.type;
+  document.getElementById('scenario-text').textContent = c.scenario;
+  document.getElementById('question-text').textContent = c.question;
+  document.getElementById('submit-btn').disabled = true;
+  document.getElementById('submit-hint').textContent = '選択してから判定';
+
+  const cl = document.getElementById('clue-list');
+  cl.innerHTML = '';
+  c.clues.forEach(clue => {
+    const d = document.createElement('div');
+    d.className = 'clue-tag';
+    d.innerHTML = '<span>' + clue.label + '</span>' + clue.text;
+    d.onclick = () => d.classList.toggle('active');
+    cl.appendChild(d);
+  });
+
+  const og = document.getElementById('options-grid');
+  og.innerHTML = '';
+  ['A','B','C','D'].forEach((label, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = '<span class="opt-num">' + label + '</span>' + c.options[i];
+    btn.onclick = () => selectOption(i);
+    og.appendChild(btn);
+  });
+
+  startTimer();
+}
+
+function selectOption(i) {
+  if (answered) return;
+  selectedOption = i;
+  document.querySelectorAll('.option-btn').forEach((b, idx) => b.className = 'option-btn' + (idx === i ? ' selected' : ''));
+  document.getElementById('submit-btn').disabled = false;
+  document.getElementById('submit-hint').textContent = '判定する準備OK';
+}
+
+function startTimer() {
+  clearInterval(timerInterval);
+  timeLeft = 120; updateTimer();
+  timerInterval = setInterval(() => { timeLeft--; updateTimer(); if (timeLeft <= 0) { clearInterval(timerInterval); if (!answered) submitAnswer(true); } }, 1000);
+}
+
+function updateTimer() {
+  const el = document.getElementById('hud-timer');
+  const m = Math.floor(timeLeft/60), s = timeLeft % 60;
+  el.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+  el.className = 'hud-value' + (timeLeft <= 30 ? ' timer-warn' : '');
+}
+
+function submitAnswer(timeout) {
+  if (answered) return;
+  if (!timeout && selectedOption === -1) return;
+  answered = true; clearInterval(timerInterval);
+  const c = CASES[currentCase];
+  const isCorrect = selectedOption === c.correct;
+  const timeBonus = isCorrect ? Math.floor(timeLeft / 120 * 50) : 0;
+  const pts = isCorrect ? (50 + timeBonus) : 0;
+  totalScore += pts;
+
+  document.querySelectorAll('.option-btn').forEach((b, i) => {
+    b.disabled = true;
+    if (i === c.correct) b.className = 'option-btn correct';
+    else if (i === selectedOption) b.className = 'option-btn wrong';
+  });
+
+  document.getElementById('hud-score').textContent = totalScore;
+  caseResults.push({ idx: currentCase, correct: isCorrect, timeLeft, timeout: !!timeout });
+
+  const verdict = document.getElementById('result-verdict');
+  if (timeout) { verdict.textContent = 'TIME OUT'; verdict.className = 'result-verdict timeout'; }
+  else if (isCorrect) { verdict.textContent = 'CORRECT !'; verdict.className = 'result-verdict correct'; }
+  else { verdict.textContent = 'INCORRECT'; verdict.className = 'result-verdict wrong'; }
+
+  document.getElementById('result-explanation').textContent = c.explanation;
+  document.getElementById('bias-box').innerHTML = `<div class="bias-title">IDENTIFIED BIAS</div><div class="bias-name">${c.bias.name}</div><div class="bias-desc">${c.bias.desc}</div>`;
+  document.getElementById('stat-pts').textContent = '+' + pts;
+  document.getElementById('stat-time').textContent = timeLeft + 's';
+  document.getElementById('stat-total').textContent = totalScore;
+  document.getElementById('next-btn').textContent = currentCase < 4 ? 'NEXT CASE →' : 'SHOW RESULTS →';
+  document.getElementById('result-overlay').className = 'result-overlay show';
+}
+
+function nextCase() {
+  document.getElementById('result-overlay').className = 'result-overlay';
+  currentCase++;
+  if (currentCase >= CASES.length) showEnd();
+  else loadCase(currentCase);
+}
+
+function showEnd() {
+  document.getElementById('game-screen').style.display = 'none';
+  const end = document.getElementById('end-screen');
+  end.className = 'show';
+  document.getElementById('end-score').textContent = totalScore;
+  document.getElementById('progress-fill').style.width = '100%';
+
+  const correctCount = caseResults.filter(r => r.correct).length;
+  const avgTime = Math.round(caseResults.reduce((s,r) => s + r.timeLeft, 0) / caseResults.length);
+
+  let rank, rankSub;
+  if (totalScore >= 430)      { rank = '🧠 メタ認知のマスター';       rankSub = '全ての思考の歪みを正確に見抜きました'; }
+  else if (totalScore >= 320) { rank = '🔍 鋭い観察者';               rankSub = 'ほとんどのバイアスを特定できました'; }
+  else if (totalScore >= 200) { rank = '🪞 自己認識の途上';           rankSub = '見えているバイアスと見えていないものがあります'; }
+  else                        { rank = '🌱 訓練が必要';               rankSub = '思考の外側から自分を見る練習を続けましょう'; }
+
+  document.getElementById('end-rank').textContent = rank;
+  document.getElementById('end-rank-sub').textContent = rankSub;
+
+  const correctTags = caseResults.filter(r => r.correct).flatMap(r => CASES[r.idx].tags);
+  const wrongTags   = caseResults.filter(r => !r.correct).flatMap(r => CASES[r.idx].tags);
+  const timeouts    = caseResults.filter(r => r.timeout);
+  const fastCorrect = caseResults.filter(r => r.correct && r.timeLeft >= 90);
+
+  const caseRows = caseResults.map(r => {
+    const c = CASES[r.idx];
+    const icon = r.correct ? '✓' : (r.timeout ? '⏱' : '✕');
+    const iconColor = r.correct ? 'var(--success)' : (r.timeout ? 'var(--text2)' : 'var(--danger)');
+    const tagHtml = c.tags.map(t => `<span style="font-size:10px;background:rgba(200,64,232,0.12);border:1px solid rgba(200,64,232,0.3);color:var(--accent);padding:2px 8px;margin-right:4px;">${t}</span>`).join('');
+    const pts = r.correct ? (50 + Math.floor(r.timeLeft/120*50)) : 0;
+    return `<div style="background:var(--panel2);border:1px solid var(--border);padding:14px 16px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:${iconColor};min-width:20px;">${icon}</span>
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:700;color:var(--text);">${c.title} <span style="font-size:11px;color:var(--accent);font-family:'Bebas Neue',sans-serif;letter-spacing:.1em;">${c.type}</span></div>
+          <div style="margin-top:4px;">${tagHtml}</div>
+          <div style="margin-top:4px;font-size:12px;color:var(--accent2);">${c.bias.name}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent);">+${pts}</div>
+          <div style="font-size:10px;color:var(--text2);">残り${r.timeLeft}s</div>
+        </div>
+      </div>
+      ${!r.correct ? `<div style="font-size:12px;color:var(--text2);border-left:2px solid var(--danger);padding-left:10px;line-height:1.6;">${c.explanation}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  let strengthLines = [], weaknessLines = [];
+  if (correctCount === 5) strengthLines.push('全問正解。他者と自己の思考の歪みを構造として捉える力が完成されています。');
+  else if (correctCount >= 4) strengthLines.push('高い正答率。バイアスの構造を論理的に見抜く力があります。');
+  else if (correctCount >= 3) strengthLines.push('半数以上正解。メタ認知の基礎力があります。');
+  else weaknessLines.push('正答率が低め。自分と他者の思考を「外から見る」視点を鍛える練習が必要です。');
+
+  if (correctTags.includes('選択的証拠') || correctTags.includes('論理的誤謬'))
+    strengthLines.push('議論の中の論理的誤謬を見抜く力があります。');
+  if (correctTags.includes('自己奉仕バイアス') || correctTags.includes('帰属の誤り'))
+    strengthLines.push('成功・失敗の原因帰属の歪みを正確に特定できています。');
+  if (correctTags.includes('集団思考') || correctTags.includes('同調圧力'))
+    strengthLines.push('集団力学がもたらす思考の歪みを見抜けています。');
+  if (correctTags.includes('バイアス盲点') || correctTags.includes('メタ認知の失敗'))
+    strengthLines.push('最も難しい「メタ認知そのものの失敗」を見抜けました。高度な自己客観視能力があります。');
+  if (fastCorrect.length >= 3) strengthLines.push('判断が速い。バイアスのパターン認識が直感レベルに達しています。');
+
+  if (wrongTags.includes('選択的証拠')) weaknessLines.push('「都合のよい証拠だけを使う」パターンは日常でよく見られます。主張の裏に隠れた反証を探す習慣を。');
+  if (wrongTags.includes('自己奉仕バイアス')) weaknessLines.push('成功を自分の能力に帰属させることは自然な傾向です。外部条件を切り分ける練習が有効です。');
+  if (wrongTags.includes('集団思考')) weaknessLines.push('場の空気が情報を歪める構造は見えにくいです。「誰かが言わなかった情報はないか」を会議後に確認する習慣を。');
+  if (wrongTags.includes('確証バイアス')) weaknessLines.push('仮説を持った後の観察は全て確証に見えやすいです。「この仮説が間違いである証拠は何か」を常に問う練習を。');
+  if (wrongTags.includes('バイアス盲点')) weaknessLines.push('「自分はバイアスがない」という感覚自体がバイアスです。自己検証は「自分もバイアスがある」前提で行う必要があります。');
+  if (timeouts.length >= 2) weaknessLines.push('時間切れが多め。迷いが生じるのは複数のバイアスが混在して見えているかもしれません。まず「誰の思考か」を特定してから絞る練習を。');
+
+  if (strengthLines.length === 0) strengthLines.push('ここから伸びしろがあります。');
+  if (weaknessLines.length === 0) weaknessLines.push('現時点での明確な弱点は見当たりません。');
+
+  document.getElementById('end-analysis').innerHTML = `
+    <div style="margin-bottom:20px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.2em;color:var(--text2);margin-bottom:12px;">CASE REVIEW</div>
+      ${caseRows}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+      <div style="background:rgba(64,232,128,0.06);border:1px solid rgba(64,232,128,0.2);padding:16px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:.2em;color:var(--success);margin-bottom:10px;">STRENGTHS</div>
+        ${strengthLines.map(l => `<div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:6px;padding-left:10px;border-left:2px solid var(--success);">${l}</div>`).join('')}
+      </div>
+      <div style="background:rgba(232,64,64,0.06);border:1px solid rgba(232,64,64,0.2);padding:16px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:.2em;color:var(--danger);margin-bottom:10px;">AREAS TO TRAIN</div>
+        ${weaknessLines.map(l => `<div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:6px;padding-left:10px;border-left:2px solid var(--danger);">${l}</div>`).join('')}
+      </div>
+    </div>
+    <div style="background:var(--panel2);border:1px solid var(--border);padding:14px 16px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:.2em;color:var(--text2);margin-bottom:8px;">STATS</div>
+      <div style="display:flex;gap:24px;font-size:13px;color:var(--text2);">
+        <span>正解率 <strong style="color:var(--text)">${correctCount}/5</strong></span>
+        <span>平均残り時間 <strong style="color:var(--text)">${avgTime}s</strong></span>
+        <span>合計スコア <strong style="color:var(--accent)">${totalScore}pt</strong></span>
+      </div>
+    </div>`;
+}
+
+function setFont(size) {
+  document.body.classList.remove('font-sm', 'font-lg');
+  if (size !== 'md') document.body.classList.add('font-' + size);
+  document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
+  ({ sm: 0, md: 1, lg: 2 })[size] !== undefined && (document.querySelectorAll('.font-btn')[({ sm: 0, md: 1, lg: 2 })[size]].classList.add('active'));
+}
+
+function shareResult() {
+  const correctCount = caseResults.filter(r => r.correct).length;
+  const rank = document.getElementById('end-rank')?.textContent.replace(/^[^\s]+\s/, '') || '';
+  const text = `【META LENS】\nメタ認知トレーニングゲームに挑戦！\n正解率: ${correctCount}/5 | スコア: ${totalScore}点\nランク: ${rank}\nhttps://siesta-club.github.io/Logical_thinking/\n#METALENS #メタ認知 #論理的思考`;
+  if (navigator.share) navigator.share({ text }).catch(() => fallbackCopy(text));
+  else fallbackCopy(text);
+}
+
+function fallbackCopy(text) {
+  const btn = document.getElementById('share-btn');
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'COPIED !'; setTimeout(() => btn.textContent = 'SHARE RESULT', 2000);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'COPIED !'; setTimeout(() => btn.textContent = 'SHARE RESULT', 2000);
+  });
+}
+
+function resetGame() {
+  currentCase = 0; selectedOption = -1; totalScore = 0; answered = false; caseResults = [];
+  document.getElementById('end-screen').className = '';
+  document.getElementById('title-screen').style.display = 'flex';
+}
+</script>
+</body>
+</html>
