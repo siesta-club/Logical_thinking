@@ -25,7 +25,20 @@ body {
   font-family: 'Noto Sans JP', sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
+  font-size: var(--base-font, 14px);
 }
+body.font-sm { --base-font: 13px; }
+body.font-md { --base-font: 15px; }
+body.font-lg { --base-font: 18px; }
+body.font-lg .scenario-text, body.font-lg .option-btn { font-size: 17px; }
+body.font-lg .question-text { font-size: 19px; }
+body.font-md .scenario-text, body.font-md .option-btn { font-size: 15px; }
+body.font-md .question-text { font-size: 17px; }
+.font-ctrl { display: flex; align-items: center; gap: 6px; }
+.font-btn { background: transparent; border: 1px solid var(--border); color: var(--text2); font-family: 'Bebas Neue', sans-serif; font-size: 14px; padding: 3px 9px; cursor: pointer; transition: all 0.15s; letter-spacing: 0.05em; }
+.font-btn:hover, .font-btn.active { border-color: var(--accent); color: var(--accent); }
+.share-btn { background: transparent; border: 1px solid var(--border); color: var(--text2); font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 0.1em; padding: 8px 20px; cursor: pointer; transition: all 0.15s; margin-bottom: 16px; }
+.share-btn:hover { border-color: var(--accent); color: var(--accent); }
 
 /* SCANLINE EFFECT */
 body::after {
@@ -537,6 +550,26 @@ body::after {
 }
 .shake { animation: shake 0.4s ease; }
 
+.font-ctrl { display: flex; gap: 4px; align-items: center; }
+.font-btn { background: transparent; border: 1px solid var(--border); color: var(--text2); font-family: 'Bebas Neue', sans-serif; font-size: 14px; padding: 4px 8px; cursor: pointer; transition: all 0.15s; letter-spacing: 0.05em; }
+.font-btn:hover { border-color: var(--accent); color: var(--accent); }
+.font-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(232,200,64,0.1); }
+.share-btn { background: transparent; border: 2px solid var(--accent2); color: var(--accent2); font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 0.15em; padding: 12px 28px; cursor: pointer; transition: all 0.2s; margin-bottom: 12px; }
+.share-btn:hover { background: var(--accent2); color: var(--bg); }
+
+body.font-sm { font-size: 12px; }
+body.font-sm .scenario-text { font-size: 12px; }
+body.font-sm .option-btn { font-size: 12px; }
+body.font-sm .question-text { font-size: 14px; }
+body.font-md .scenario-text { font-size: 14px; }
+body.font-md .option-btn { font-size: 14px; }
+body.font-md .question-text { font-size: 16px; }
+body.font-lg .scenario-text { font-size: 17px; }
+body.font-lg .option-btn { font-size: 16px; }
+body.font-lg .question-text { font-size: 19px; }
+body.font-lg .clue-tag { font-size: 14px; }
+body.font-lg .result-explanation { font-size: 16px; }
+
 @media (max-width: 700px) {
   .game-body { grid-template-columns: 1fr; }
   .char-panel { display: none; }
@@ -604,6 +637,11 @@ body::after {
   <div class="game-header">
     <div class="game-logo">MIND READER</div>
     <div class="hud">
+      <div class="font-ctrl">
+        <button class="font-btn" onclick="setFont('sm')">小</button>
+        <button class="font-btn active" id="font-md-btn" onclick="setFont('md')">中</button>
+        <button class="font-btn" onclick="setFont('lg')">大</button>
+      </div>
       <div class="hud-item">
         <div class="hud-label">SCORE</div>
         <div class="hud-value accent" id="hud-score">0</div>
@@ -701,7 +739,9 @@ body::after {
     <div class="end-max">/ 400点</div>
     <div class="rank-display" id="end-rank"></div>
     <div class="rank-sub" id="end-rank-sub"></div>
-    <div id="end-analysis" style="text-align:left;width:100%;max-width:600px;margin:0 auto 32px;"></div>
+    <div id="end-analysis" style="text-align:left;width:100%;max-width:600px;margin:0 auto 24px;"></div>
+    <button class="share-btn" id="share-btn" onclick="shareResult()">SHARE RESULT</button>
+    <br>
     <button class="replay-btn" onclick="resetGame()">PLAY AGAIN</button>
   </div>
 </div>
@@ -1098,6 +1138,47 @@ function resetGame() {
   caseResults = [];
   document.getElementById('end-screen').className = '';
   document.getElementById('title-screen').style.display = 'flex';
+}
+
+function setFont(size) {
+  document.body.classList.remove('font-sm', 'font-md', 'font-lg');
+  if (size !== 'md') document.body.classList.add('font-' + size);
+  document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
+  const map = { sm: 0, md: 1, lg: 2 };
+  document.querySelectorAll('.font-btn')[map[size]].classList.add('active');
+}
+
+function shareResult() {
+  const correctCount = caseResults.filter(r => r.correct).length;
+  const rankEl = document.getElementById('end-rank');
+  const rank = rankEl ? rankEl.textContent.replace(/^[^\s]+\s/, '') : '';
+  const text = `【MIND READER】\n心理分析ゲームに挑戦！\n正解率: ${correctCount}/4 | スコア: ${totalScore}点\nランク: ${rank}\nhttps://siesta-club.github.io/Logical_thinking/\n#MINDREADER #論理的思考 #心理分析`;
+
+  if (navigator.share) {
+    navigator.share({ text }).catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('share-btn');
+    const orig = btn.textContent;
+    btn.textContent = 'COPIED !';
+    setTimeout(() => btn.textContent = orig, 2000);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    const btn = document.getElementById('share-btn');
+    const orig = btn.textContent;
+    btn.textContent = 'COPIED !';
+    setTimeout(() => btn.textContent = orig, 2000);
+  });
 }
 </script>
 </body>
